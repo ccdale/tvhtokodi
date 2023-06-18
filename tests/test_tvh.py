@@ -16,34 +16,24 @@
 #     You should have received a copy of the GNU General Public License
 #     along with tvhtokodi.  If not, see <http://www.gnu.org/licenses/>.
 #
-"""tvh module for tvhtokodi"""
+"""Test module for the tvhtokodi.tvh module"""
 
+import json
 import sys
 
-import requests
+import pytest
 
 import tvhtokodi
-from tvhtokodi import errorExit, errorNotify, errorRaise
 from tvhtokodi.config import readConfig
+from tvhtokodi.tvh import sendToTvh, TVHError
 
 
-class TVHError(Exception):
-    pass
-
-
-def sendToTvh(route, data=None):
-    """Send a request to tvheadend"""
-    try:
-        auth = (tvhtokodi.tvhuser, tvhtokodi.tvhpass)
-        url = f"http://{tvhtokodi.tvhipaddr}/api/{route}"
-        r = requests.get(url, data=data, auth=auth)
-        if r.status_code != 200:
-            raise TVHError(f"error communicating with tvh: {r}")
-        return r.json()
-    except Exception as e:
-        try:
-            print("Error decoding json from tvh, trying again")
-            txt = r.text.replace(chr(25), " ")
-            return json.loads(txt)
-        except Exception as xe:
-            errorNotify(sys.exc_info()[2], e)
+def test_sendToTvh(capsys):
+    cfg = readConfig()
+    tvhtokodi.tvhuser = cfg["tvhuser"]
+    tvhtokodi.tvhpass = cfg["tvhpass"]
+    tvhtokodi.tvhipaddr = cfg["tvhipaddr"]
+    route = "dvr/entry/grid_finished"
+    data = {"limit": 100}
+    jdat = sendToTvh(route, data=data)
+    assert "total" in jdat
