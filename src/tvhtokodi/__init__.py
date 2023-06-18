@@ -28,6 +28,10 @@ __appname__ = "tvhtokodi"
 # ccalogging.setConsoleOut()
 # log = ccalogging.log
 
+tvhuser = "unset"
+tvhpass = "unset"
+tvhipaddr = "unset"
+
 
 def errorNotify(exci, e, fname=None):
     lineno = exci.tb_lineno
