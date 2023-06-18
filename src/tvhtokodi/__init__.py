@@ -21,7 +21,7 @@ import sys
 
 # import ccalogging
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 __appname__ = "tvhtokodi"
 
 # ccalogging.setDebug()
