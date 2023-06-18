@@ -9,6 +9,7 @@ packages = [{include = "tvhtokodi", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.11"
 ccalogging = "^0.4.4"
+requests = "^2.31.0"
 
 
 [tool.poetry.group.dev.dependencies]
