@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tvhtokodi"
-version = "0.1.4"
+version = "0.1.5"
 description = ""
 authors = ["ccdale <chris.allison@hivehome.com>"]
 readme = "README.md"
@@ -8,7 +8,6 @@ packages = [{include = "tvhtokodi", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-ccalogging = "^0.4.4"
 requests = "^2.31.0"
 
 
