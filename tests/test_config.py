@@ -20,7 +20,8 @@
 
 import pytest
 
-from tvhtokodi.config import readConfig, writeConfig
+import tvhtokodi
+from tvhtokodi.config import readConfig, setConfig, writeConfig
 
 
 def test_ReadConfig():
@@ -33,3 +34,13 @@ def test_WriteConfig(capsys):
     writeConfig(cfg)
     out, err = capsys.readouterr()
     assert err == ""
+    xcfg = readConfig()
+    for key in xcfg:
+        assert xcfg[key] == cfg[key]
+
+
+def test_setConfig():
+    cfg = setConfig()
+    assert tvhtokodi.tvhuser == cfg["tvhuser"]
+    assert tvhtokodi.tvhpass == cfg["tvhpass"]
+    assert tvhtokodi.tvhipaddr == cfg["tvhipaddr"]

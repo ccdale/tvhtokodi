@@ -21,6 +21,7 @@ import json
 from pathlib import Path
 import sys
 
+import tvhtokodi
 from tvhtokodi import __appname__, errorExit
 
 configfn = Path.home().joinpath(".config", f"{__appname__}.json")
@@ -42,3 +43,14 @@ def readConfig():
         return config
     except Exception as e:
         errorExit(sys.exc_info()[2], e)
+
+
+def setConfig():
+    try:
+        cfg = readConfig()
+        tvhtokodi.tvhuser = cfg["tvhuser"]
+        tvhtokodi.tvhpass = cfg["tvhpass"]
+        tvhtokodi.tvhipaddr = cfg["tvhipaddr"]
+        return cfg
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)

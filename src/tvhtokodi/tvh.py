@@ -36,7 +36,7 @@ def sendToTvh(route, data=None):
     try:
         auth = (tvhtokodi.tvhuser, tvhtokodi.tvhpass)
         url = f"http://{tvhtokodi.tvhipaddr}/api/{route}"
-        r = requests.get(url, data=data, auth=auth)
+        r = requests.get(url, params=data, auth=auth)
         if r.status_code != 200:
             raise TVHError(f"error communicating with tvh: {r}")
         return r.json()
@@ -47,3 +47,13 @@ def sendToTvh(route, data=None):
             return json.loads(txt)
         except Exception as xe:
             errorNotify(sys.exc_info()[2], e)
+
+
+def allRecordings():
+    try:
+        route = "dvr/entry/grid_finished"
+        data = {"limit": 9999}
+        jdat = sendToTvh(route, data=data)
+        return jdat["entries"], jdat["total"]
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)

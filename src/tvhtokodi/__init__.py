@@ -19,14 +19,10 @@
 
 import sys
 
-# import ccalogging
 
 __version__ = "0.1.4"
 __appname__ = "tvhtokodi"
 
-# ccalogging.setDebug()
-# ccalogging.setConsoleOut()
-# log = ccalogging.log
 
 tvhuser = "unset"
 tvhpass = "unset"
