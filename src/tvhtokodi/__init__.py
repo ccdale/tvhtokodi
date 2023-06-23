@@ -17,16 +17,15 @@
 #     along with tvhtokodi.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from pathlib import Path
 import sys
 
 
 __version__ = "0.1.6"
 __appname__ = "tvhtokodi"
 
-
-tvhuser = "unset"
-tvhpass = "unset"
-tvhipaddr = "unset"
+configfn = Path.home().joinpath(".config", f"{__appname__}.json")
+cfg = {}
 
 
 def errorNotify(exci, e, fname=None):
@@ -47,3 +46,20 @@ def errorRaise(exci, e, fname=None):
 def errorExit(exci, e, fname=None):
     errorNotify(exci, e, fname)
     sys.exit(1)
+
+
+def writeConfig():
+    try:
+        with open(str(configfn), "w") as ofn:
+            json.dump(cfg, ofn, indent=4)
+    except Exception as e:
+        errorExit(sys.exc_info()[2], e)
+
+
+def readConfig():
+    try:
+        global cfg
+        with open(str(configfn), "r") as ifn:
+            cfg = json.load(ifn)
+    except Exception as e:
+        errorExit(sys.exc_info()[2], e)

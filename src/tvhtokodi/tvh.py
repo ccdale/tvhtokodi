@@ -24,7 +24,6 @@ import requests
 
 import tvhtokodi
 from tvhtokodi import errorExit, errorNotify, errorRaise
-from tvhtokodi.config import readConfig
 
 
 class TVHError(Exception):
@@ -34,8 +33,8 @@ class TVHError(Exception):
 def sendToTvh(route, data=None):
     """Send a request to tvheadend"""
     try:
-        auth = (tvhtokodi.tvhuser, tvhtokodi.tvhpass)
-        url = f"http://{tvhtokodi.tvhipaddr}/api/{route}"
+        auth = (tvhtokodi.cfg["tvhuser"], tvhtokodi.cfg["tvhpass"])
+        url = f"http://{tvhtokodi.cfg['tvhipaddr']}/api/{route}"
         r = requests.get(url, params=data, auth=auth)
         if r.status_code != 200:
             raise TVHError(f"error communicating with tvh: {r}")
