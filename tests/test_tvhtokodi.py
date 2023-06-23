@@ -21,7 +21,8 @@ import sys
 
 import pytest
 
-from tvhtokodi import errorExit, errorNotify, errorRaise, __version__
+import tvhtokodi
+from tvhtokodi import errorExit, errorNotify, errorRaise
 
 
 class TheException(Exception):
@@ -34,7 +35,7 @@ class TheException(Exception):
 
 
 def test_tvhtokodi_version():
-    assert __version__ == "0.1.6"
+    assert tvhtokodi.__version__ == "0.1.6"
 
 
 def test_errorNotify(capsys):

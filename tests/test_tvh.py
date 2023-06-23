@@ -24,14 +24,11 @@ import sys
 # import pytest
 
 import tvhtokodi
-from tvhtokodi.config import setConfig
 from tvhtokodi.tvh import allRecordings, sendToTvh, TVHError
-
-# setup the tvh auth config before testing
-cfg = setConfig()
 
 
 def test_sendToTvh():
+    tvhtokodi.readConfig()
     route = "dvr/entry/grid_finished"
     data = {"limit": 100}
     jdat = sendToTvh(route, data=data)
@@ -39,5 +36,6 @@ def test_sendToTvh():
 
 
 def test_allRecordings():
+    tvhtokodi.readConfig()
     recordings, total = allRecordings()
     assert len(recordings) == total

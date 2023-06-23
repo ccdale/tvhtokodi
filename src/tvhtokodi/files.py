@@ -16,31 +16,22 @@
 #     You should have received a copy of the GNU General Public License
 #     along with tvhtokodi.  If not, see <http://www.gnu.org/licenses/>.
 #
-"""Test module for tvhtokodi.config module"""
+import os
+import sys
 
-import pytest
+from fabric import Connection
 
 import tvhtokodi
-from tvhtokodi.config import readConfig, setConfig, writeConfig
 
 
-def test_ReadConfig():
-    cfg = readConfig()
-    assert cfg["tvhuser"] == "chris-admin"
-
-
-def test_WriteConfig(capsys):
-    cfg = readConfig()
-    writeConfig(cfg)
-    out, err = capsys.readouterr()
-    assert err == ""
-    xcfg = readConfig()
-    for key in xcfg:
-        assert xcfg[key] == cfg[key]
-
-
-def test_setConfig():
-    cfg = setConfig()
-    assert tvhtokodi.tvhuser == cfg["tvhuser"]
-    assert tvhtokodi.tvhpass == cfg["tvhpass"]
-    assert tvhtokodi.tvhipaddr == cfg["tvhipaddr"]
+def sendFileTo(fn):
+    try:
+        mhost = tvhtokodi.cfg["sshhost"]
+        muser = tvhtokodi.cfg["sshuser"]
+        mkeyfn = os.path.abspath(os.path.expanduser(f'~/.ssh/{tvhtokodi.cfg["keyfn"]}'))
+        ckwargs = {"key_filename": mkeyfn}
+        ofn = os.path.abspath(os.path.expanduser(f"~/{fn}"))
+        with Connection(host=mhost, user=muser, connect_kwargs=ckwargs) as c:
+            c.put(fn, ofn)
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
