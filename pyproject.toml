@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tvhtokodi"
-version = "0.1.7"
+version = "0.1.8"
 description = "edit tvh recordings and import them into the kodi db"
 authors = ["ccdale <chris.charles.allison+tvhtokodi@gmail.com>"]
 readme = "README.md"
@@ -10,6 +10,7 @@ packages = [{include = "tvhtokodi", from = "src"}]
 python = "^3.11"
 requests = "^2.31.0"
 fabric = "^3.1.0"
+pysimplegui = "^4.60.5"
 
 
 [tool.poetry.group.dev.dependencies]
