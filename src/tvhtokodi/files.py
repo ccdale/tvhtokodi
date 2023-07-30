@@ -25,6 +25,7 @@ import tvhtokodi
 
 
 def sendFileTo(fn):
+    """transfers file 'fn' via ssh to the sshhost."""
     try:
         mhost = tvhtokodi.cfg["sshhost"]
         muser = tvhtokodi.cfg["sshuser"]

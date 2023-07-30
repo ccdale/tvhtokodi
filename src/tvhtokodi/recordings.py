@@ -19,6 +19,7 @@
 """recordings module for tvhtokodi"""
 
 import sys
+import time
 
 import tvhtokodi
 from tvhtokodi import errorNotify
@@ -30,7 +31,7 @@ def cleanStringStart(xstr, remove="new:"):
         if xstr is None:
             return None
         xs = xstr[len(remove) :] if xstr.lower().startswith(remove) else xstr
-        return xs
+        return xs.strip()
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
 
@@ -38,7 +39,8 @@ def cleanStringStart(xstr, remove="new:"):
 def cleanTitle(title):
     """rules to clean up the title string."""
     try:
-        xt = cleanStringStart(title)
+        xt = cleanStringStart(title, remove="new:")
+        xt = cleanStringStart(xt, remove="live:")
         return xt
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
@@ -57,10 +59,14 @@ def tidyRecording(rec):
             "filesize": rec.get("filesize"),
             "recorddate": rec.get("start"),
             "status": rec.get("status"),
-            "subtitle": cleanStringStart(rec.get("disp_subtitle", None), " - "),
+            "subtitle": cleanStringStart(rec.get("disp_subtitle", ""), " - "),
             "summary": rec.get("disp_summary", None),
             "title": cleanTitle(rec.get("disp_title")),
             "uuid": rec.get("uuid"),
+            "start_real": rec.get("start_real", 0),
+            "stop_real": rec.get("stop_real", 0),
+            "disp_description": rec.get("disp_description", None),
+            "ctimestart": time.ctime(rec.get("start_real", None)),
         }
         return oprec
     except Exception as e:
@@ -74,8 +80,10 @@ def recordedTitles():
         titles = {}
         for rec in recs:
             show = tidyRecording(rec)
-            _ = titles.get(show["title"], [])
-            titles["title"].append(show)
+            if show["title"] not in titles:
+                titles[show["title"]] = []
+            # _ = titles.get(show["title"], [])
+            titles[show["title"]].append(show)
         return recs, titles
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
