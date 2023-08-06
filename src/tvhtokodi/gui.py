@@ -33,6 +33,7 @@ from tvhtokodi.nfo import hmsDisplay
 
 def displayTitles(titles):
     try:
+        op = []
         names = [n for n in titles]
         titleslist = sg.Listbox(
             names,
@@ -62,10 +63,18 @@ def displayTitles(titles):
                 selection = values[event]
                 log.debug(f"{selection=}")
                 if selection:
-                    progWindow(titles[selection[0]][0], len(titles[selection[0]]))
+                    dest, seriesfolders = progWindow(
+                        titles[selection[0]][0], len(titles[selection[0]])
+                    )
+                    if dest:
+                        for title in titles[selection[0]]:
+                            title["destination"] = dest
+                            title["seriesfolders"] = seriesfolders
+                            op.append(title)
                     log.debug(f"{selection[0]=}")
                     # log.debug(f"{tlist.get_indexes()[0]=}")
         wind.close()
+        return op
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
 
@@ -97,20 +106,24 @@ def progWindow(show, total=1):
             [[sg.Button(legend, key="-MOVE-"), sg.Quit()]],
         ]
         wind = sg.Window(show["title"], layout)
+        seriesfolders = False
         while True:
             event, values = wind.read()
             if event in (sg.WIN_CLOSED, "Exit", "Quit"):
+                dest = None
                 break
             if event == "-MOVE-":
                 if values["-YEAR-"] == "Year":
                     cat = values["-DEST-"]
                     dest = f"TV/{cat}/{show['title']}/"
+                    seriesfolders = values["-SERIESFOLDERS-"]
                 else:
                     dest = f"films/{show['title'][:1].lower()}/{show['title']} ({values['-YEAR-']})/"
                 log.debug(f"{dest=}")
                 break
         log.debug(f"{event=}\n{values=}")
         wind.close()
+        return dest, seriesfolders
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
 
@@ -126,4 +139,5 @@ if __name__ == "__main__":
     log.setLevel(logging.DEBUG)
     tvhtokodi.readConfig()
     recs, titles = recordedTitles()
-    displayTitles(titles)
+    move = displayTitles(titles)
+    log.debug(f"{move=}")
