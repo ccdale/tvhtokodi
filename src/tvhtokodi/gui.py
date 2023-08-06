@@ -17,6 +17,7 @@
 #     along with tvhtokodi.  If not, see <http://www.gnu.org/licenses/>.
 #
 """GUI module for tvhtokodi."""
+import json
 import logging
 import sys
 import textwrap
@@ -27,8 +28,7 @@ import tvhtokodi
 from tvhtokodi import errorNotify
 from tvhtokodi.recordings import recordedTitles
 from tvhtokodi.nfo import hmsDisplay
-
-# log = None
+from tvhtokodi.files import sendFileTo
 
 
 def displayTitles(titles):
@@ -128,16 +128,27 @@ def progWindow(show, total=1):
         errorNotify(sys.exc_info()[2], e)
 
 
+def doGui():
+    try:
+        cformat = "%(asctime)s [%(levelname)-5.5s]  %(message)s"
+        datefmt = "%d/%m/%Y %H:%M:%S"
+        cfmt = logging.Formatter(cformat, datefmt=datefmt)
+        consH = logging.StreamHandler(sys.stderr)
+        consH.setFormatter(cfmt)
+        log = logging.getLogger(tvhtokodi.__appname__)
+        log.addHandler(consH)
+        log.setLevel(logging.DEBUG)
+        tvhtokodi.readConfig()
+        recs, titles = recordedTitles()
+        move = displayTitles(titles)
+        log.debug(f"{move=}")
+        opfn = "/tmp/tvhtokodi-move.json"
+        with open(opfn, "w") as ofn:
+            json.dump(move, ofn, indent=4)
+        sendFileTo(opfn)
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
+
+
 if __name__ == "__main__":
-    cformat = "%(asctime)s [%(levelname)-5.5s]  %(message)s"
-    datefmt = "%d/%m/%Y %H:%M:%S"
-    cfmt = logging.Formatter(cformat, datefmt=datefmt)
-    consH = logging.StreamHandler(sys.stderr)
-    consH.setFormatter(cfmt)
-    log = logging.getLogger(tvhtokodi.__appname__)
-    log.addHandler(consH)
-    log.setLevel(logging.DEBUG)
-    tvhtokodi.readConfig()
-    recs, titles = recordedTitles()
-    move = displayTitles(titles)
-    log.debug(f"{move=}")
+    doGui()

@@ -16,6 +16,9 @@ pysimplegui = "^4.60.5"
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.3.2"
 
+[tool.poetry.scripts]
+tvh = "tvhtokodi.gui:doGui"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
