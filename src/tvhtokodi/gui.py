@@ -40,14 +40,9 @@ def displayTitles(titles):
         titleslist = sg.Listbox(
             names,
             size=(60, 40),
-            # expand_x=True,
-            # expand_y=True,
             enable_events=True,
             key="-TLIST-",
         )
-        # slist = sg.Listbox(
-        #     ["one", "two", "three"], size=(60, 40), enable_events=True, key="-SLIST-"
-        # )
         layout = [
             [sg.Text("Titles")],
             [sg.Text(f"Total Titles: {len(titles)}")],
@@ -74,7 +69,6 @@ def displayTitles(titles):
                             title["seriesfolders"] = seriesfolders
                             op.append(title)
                     log.debug(f"{selection[0]=}")
-                    # log.debug(f"{tlist.get_indexes()[0]=}")
         wind.close()
         return op
     except Exception as e:
