@@ -31,7 +31,9 @@ def sendFileTo(fn):
         muser = tvhtokodi.cfg["sshuser"]
         mkeyfn = os.path.abspath(os.path.expanduser(f'~/.ssh/{tvhtokodi.cfg["keyfn"]}'))
         ckwargs = {"key_filename": mkeyfn}
-        ofn = os.path.abspath(os.path.expanduser(f"~/{fn}"))
+        ofn = os.path.abspath(
+            os.path.expanduser(f"{tvhtokodi.cfg['destination']}/{fn}")
+        )
         with Connection(host=mhost, user=muser, connect_kwargs=ckwargs) as c:
             c.put(fn, ofn)
     except Exception as e:
