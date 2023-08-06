@@ -1,0 +1,1 @@
+{"tvhuser": "admin", "tvhpass": "tvhpassword", "tvhipaddr": "tvserver:9981", "keyfn": "id_rsa", "sshhost": "tvserver", "filenumber": 1, "destination": "/home/admin/.tvhincoming"}
