@@ -35,7 +35,7 @@ class TheException(Exception):
 
 
 def test_tvhtokodi_version():
-    assert tvhtokodi.__version__ == "0.1.10"
+    assert tvhtokodi.__version__ == "0.1.11"
 
 
 def test_errorNotify(capsys):
