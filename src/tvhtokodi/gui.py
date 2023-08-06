@@ -30,6 +30,8 @@ from tvhtokodi.recordings import recordedTitles
 from tvhtokodi.nfo import hmsDisplay
 from tvhtokodi.files import sendFileTo
 
+log = None
+
 
 def displayTitles(titles):
     try:
@@ -130,6 +132,7 @@ def progWindow(show, total=1):
 
 def doGui():
     try:
+        global log
         cformat = "%(asctime)s [%(levelname)-5.5s]  %(message)s"
         datefmt = "%d/%m/%Y %H:%M:%S"
         cfmt = logging.Formatter(cformat, datefmt=datefmt)

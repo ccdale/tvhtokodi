@@ -22,6 +22,7 @@ import sys
 from fabric import Connection
 
 import tvhtokodi
+from tvhtokodi import errorNotify
 
 
 def sendFileTo(fn):
