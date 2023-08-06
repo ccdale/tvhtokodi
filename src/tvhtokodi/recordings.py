@@ -18,6 +18,7 @@
 #
 """recordings module for tvhtokodi"""
 
+import re
 import sys
 import time
 
@@ -68,7 +69,36 @@ def tidyRecording(rec):
             "disp_description": rec.get("disp_description", None),
             "ctimestart": time.ctime(rec.get("start_real", None)),
         }
+        extdesc = rec.get("disp_extratext", None)
+        if extdesc:
+            oprec["description"] += f". {extdesc}"
+        oprec["season"], oprec["episode"] = getEpisode(rec.get("episode_disp", None))
         return oprec
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
+
+
+def getEpisode(eps):
+    """extracts the season and episode numbers if they exist
+
+    the input string, eps,  is of the form:
+    ''
+    'Episode 37'
+    'Season 12.Episode 2'
+    """
+    try:
+        episode = None
+        season = None
+        spatt = r"^Season (\d+).*$"
+        epatt = r"^.*Episode (\d+).*$"
+        if eps is not None:
+            smatch = re.match(spatt, eps)
+            if smatch:
+                season = smatch.group(1)
+            ematch = re.match(epatt, eps)
+            if ematch:
+                episode = ematch.group(1)
+        return season, episode
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
 

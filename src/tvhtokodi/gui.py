@@ -86,6 +86,7 @@ def progWindow(show, total=1):
             [sg.Text(msg)],
             [sg.Text(show["subtitle"])],
             [sg.Text(desc)],
+            [sg.Text(f"Season: {show['season']} Episode: {show['episode']}")],
             [
                 [
                     sg.Combo(dests, key="-DEST-"),
