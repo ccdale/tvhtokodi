@@ -41,3 +41,16 @@ def sendFileTo(fn):
             c.put(fn, ofn)
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
+
+
+# function to split a filename into a list of path components
+def splitfn(path):
+    try:
+        """split a filename into a list of path components"""
+        parts = os.path.split(path)
+        pdir = parts[0]
+        pfile = parts[1]
+        pext = os.path.splitext(pfile)[1]
+        return [pdir, pfile, pext]
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
