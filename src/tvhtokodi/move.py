@@ -57,13 +57,13 @@ def moveShow(show):
             if pext != ".ts":
                 deletelist.append(f)
             # ddir, dbase, dext = splitfn(show["destfn"])
-            dext = ".ts" if not show["destfn"].endswith(".ts") else ""
+            # dext = ".ts" if not show["destfn"].endswith(".ts") else ""
             dbase = (
                 show["destfn"][:-3]
                 if show["destfn"].endswith(".ts")
                 else show["destfn"]
             )
-            dest = os.path.join(show["destination"], f"{dbase}{dext}")
+            dest = os.path.join(show["destination"], f"{dbase}{pext}")
             log.debug(f"Moving {f} to {dest}")
             shutil.copy(f, dest)
         for f in files:
