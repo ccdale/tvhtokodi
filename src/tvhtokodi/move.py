@@ -56,7 +56,8 @@ def moveShow(show):
             pdir, pbase, pext = splitfn(f)
             if pext != ".ts":
                 deletelist.append(f)
-            dest = os.path.join(show["destination"], f"{show['destfn']}{pext}")
+            ddir, dbase, dext = splitfn(show["destfn"])
+            dest = os.path.join(show["destination"], f"{dbase}{dext}")
             log.debug(f"Moving {f} to {dest}")
             shutil.copy(f, dest)
         for f in files:
@@ -72,8 +73,8 @@ def moveShow(show):
                 log.debug(f"Deleting {f}")
                 os.remove(f)
             log.info("writing NFO")
-            dest = os.path.join(show["destination"], f"{show['destfn']}.nfo")
-            log.debug(f"Writing {show['nfo']} to {dest}")
+            dest = os.path.join(show["destination"], f"{dbase}.nfo")
+            log.debug(f"Writing nfo to {dest}")
             with open(dest, "w") as ofn:
                 ofn.write(show["nfo"])
     except Exception as e:
