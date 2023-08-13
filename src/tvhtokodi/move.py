@@ -23,7 +23,7 @@ import sys
 
 import tvhtokodi
 from tvhtokodi import errorNotify
-from tvhtokodi.files import makeFileList, splitFn
+from tvhtokodi.files import makeFileList, splitfn
 from tvhtokodi.tvh import deleteRecording
 
 log = None
@@ -53,7 +53,7 @@ def moveShow(show):
         os.makedirs(show["destination"], exist_ok=True, mode=0o755, parents=True)
         files = makeFileList(show["filename"])
         for f in files:
-            pdir, pbase, pext = splitFn(f)
+            pdir, pbase, pext = splitfn(f)
             if pext != ".ts":
                 deletelist.append(f)
             dest = os.path.join(show["destination"], f"{show['destfn']}{pext}")
