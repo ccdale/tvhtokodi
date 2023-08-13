@@ -43,14 +43,45 @@ def sendFileTo(fn):
         errorNotify(sys.exc_info()[2], e)
 
 
-# function to split a filename into a list of path components
 def splitfn(path):
     try:
-        """split a filename into a list of path components"""
+        """split a filename into a list of dir, base, ext"""
         parts = os.path.split(path)
-        pdir = parts[0]
-        pfile = parts[1]
-        pext = os.path.splitext(pfile)[1]
-        return [pdir, pfile, pext]
+        pbase, pext = os.path.splitext(parts[1])
+        return [parts[0], pbase, pext]
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
+
+
+def findExtraFile(path, ext):
+    """find a file with the same name as 'path' but with extension 'ext'"""
+    try:
+        pdir, pfile, pext = splitfn(path)
+        for f in os.listdir(pdir):
+            if f.startswith(pfile) and f.endswith(ext):
+                return os.path.abspath(os.path.join(pdir, f))
+        return None
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
+
+
+def makeFileList(path):
+    """make a list of files corresponding to the recordings in tvheadend
+
+    path is the path to the recording file
+
+    will look for .txt, .nfo, and .srt files with the same name as the recording
+    .txt files are assumed to be comskip files
+    .nfo files are assumed to be kodi metadata files
+    .srt files are assumed to be subtitles
+    """
+    try:
+        flist = [path]
+        extensions = [".txt", ".nfo", ".srt"]
+        for ext in extensions:
+            extra = findExtraFile(path, ext)
+            if extra:
+                flist.append(extra)
+        return flist
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)

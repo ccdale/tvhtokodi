@@ -19,6 +19,7 @@
 """GUI module for tvhtokodi."""
 import json
 import logging
+import os
 import sys
 import textwrap
 
@@ -65,8 +66,9 @@ def displayTitles(titles):
                     )
                     if dest:
                         for title in titles[selection[0]]:
-                            title["destination"] = dest
-                            title["seriesfolders"] = seriesfolders
+                            title["destfn"], title["destination"] = decideDestFn(
+                                title, dest, seriesfolders
+                            )
                             op.append(title)
                     log.debug(f"{selection[0]=}")
         wind.close()
@@ -75,9 +77,33 @@ def displayTitles(titles):
         errorNotify(sys.exc_info()[2], e)
 
 
+def decideDestFn(title, xdest, seriesfolders):
+    try:
+        dest = xdest
+        if seriesfolders == "FILM":
+            destfn = f"{os.path.basename(title['filename'])}"
+        elif seriesfolders and title["season"] and title["episode"]:
+            dest = f"{xdest}Series {title['season']:0>2}/"
+            destfn = f"{title['title']} - S{title['season']:0>2}E{title['episode']:0>2}"
+        elif seriesfolders and title["season"]:
+            dest = f"{xdest}Series {title['season']:0>2}/"
+            destfn = f"{title['title']}"
+        elif title["season"] and title["episode"]:
+            destfn = f"{title['title']} - S{title['season']:0>2}E{title['episode']:0>2}"
+        elif title["extratext"]:
+            destfn = f"{title['title']} - {title['extratext']}"
+        else:
+            destfn = f"{os.path.basename(title['filename'])}"
+        return destfn, dest
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
+
+
 def progWindow(show, total=1):
     try:
         log.debug(f"{show=}")
+        filmdir = tvhtokodi.cfg["filmdir"]
+        tvdir = tvhtokodi.cfg["tvdir"]
         dests = ["Comedy", "Documentary", "Drama", "Music"]
         desc = show["description"]
         if len(desc) > 80:
@@ -111,10 +137,11 @@ def progWindow(show, total=1):
             if event == "-MOVE-":
                 if values["-YEAR-"] == "Year":
                     cat = values["-DEST-"]
-                    dest = f"TV/{cat}/{show['title']}/"
+                    dest = f"{tvdir}/{cat}/{show['title']}/"
                     seriesfolders = values["-SERIESFOLDERS-"]
                 else:
-                    dest = f"films/{show['title'][:1].lower()}/{show['title']} ({values['-YEAR-']})/"
+                    dest = f"{filmdir}/{show['title'][:1].upper()}/{show['title']} ({values['-YEAR-']})/"
+                    seriesfolders = "FILM"
                 log.debug(f"{dest=}")
                 break
         log.debug(f"{event=}\n{values=}")
