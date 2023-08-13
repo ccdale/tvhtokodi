@@ -50,7 +50,7 @@ def moveShow(show):
         deletelist = []
         log.info(f"Moving {show['title']}")
         log.debug(f"Creating / Using directory: {show['destination']}")
-        os.makedirs(show["destination"], exist_ok=True, mode=0o755, parents=True)
+        os.makedirs(show["destination"], exist_ok=True, mode=0o755)
         files = makeFileList(show["filename"])
         for f in files:
             pdir, pbase, pext = splitfn(f)
