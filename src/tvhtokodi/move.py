@@ -76,7 +76,7 @@ def moveShow(show):
                 continue
         if not failed:
             log.info(f"Deleting from TVHeadend {show['title']}")
-            # deleteRecording(show["uuid"])
+            deleteRecording(show["uuid"])
             for f in deletelist:
                 log.debug(f"Deleting {f}")
                 os.remove(f)
