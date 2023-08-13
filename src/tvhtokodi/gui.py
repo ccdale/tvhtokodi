@@ -28,7 +28,7 @@ import PySimpleGUI as sg
 import tvhtokodi
 from tvhtokodi import errorNotify
 from tvhtokodi.recordings import recordedTitles
-from tvhtokodi.nfo import hmsDisplay
+from tvhtokodi.nfo import hmsDisplay, makeProgNfo, makeFilmNfo
 from tvhtokodi.files import sendFileTo
 
 log = None
@@ -61,7 +61,7 @@ def displayTitles(titles):
                 selection = values[event]
                 log.debug(f"{selection=}")
                 if selection:
-                    dest, seriesfolders = progWindow(
+                    dest, seriesfolders, nfo = progWindow(
                         titles[selection[0]][0], len(titles[selection[0]])
                     )
                     if dest:
@@ -69,6 +69,7 @@ def displayTitles(titles):
                             title["destfn"], title["destination"] = decideDestFn(
                                 title, dest, seriesfolders
                             )
+                            title["nfo"] = nfo
                             op.append(title)
                     log.debug(f"{selection[0]=}")
         wind.close()
@@ -105,6 +106,7 @@ def progWindow(show, total=1):
         filmdir = tvhtokodi.cfg["filmdir"]
         tvdir = tvhtokodi.cfg["tvdir"]
         dests = ["Comedy", "Documentary", "Drama", "Music"]
+        nfo = None
         desc = show["description"]
         if len(desc) > 80:
             tmp = textwrap.wrap(desc)
@@ -139,14 +141,17 @@ def progWindow(show, total=1):
                     cat = values["-DEST-"]
                     dest = f"{tvdir}/{cat}/{show['title']}/"
                     seriesfolders = values["-SERIESFOLDERS-"]
+                    nfo = makeProgNfo(show)
                 else:
                     dest = f"{filmdir}/{show['title'][:1].upper()}/{show['title']} ({values['-YEAR-']})/"
                     seriesfolders = "FILM"
+                    show["year"] = values["-YEAR-"]
+                    nfo = makeFilmNfo(show)
                 log.debug(f"{dest=}")
                 break
         log.debug(f"{event=}\n{values=}")
         wind.close()
-        return dest, seriesfolders
+        return dest, seriesfolders, nfo
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
 

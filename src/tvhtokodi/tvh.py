@@ -56,3 +56,11 @@ def allRecordings():
         return jdat["entries"], jdat["total"]
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
+
+
+def deleteRecording(uuid):
+    try:
+        data = {"uuid": uuid}
+        sendToTVH("dvr/entry/remove", data)
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
