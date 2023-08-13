@@ -21,7 +21,7 @@ from pathlib import Path
 import sys
 
 
-__version__ = "0.2.12"
+__version__ = "0.2.13"
 __appname__ = "tvhtokodi"
 
 configfn = Path.home().joinpath(".config", f"{__appname__}.json")
