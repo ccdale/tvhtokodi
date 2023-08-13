@@ -75,16 +75,17 @@ def moveShow(show):
                 failed = True
                 continue
         if not failed:
-            log.info(f"Deleting from TVHeadend {show['title']}")
-            deleteRecording(show["uuid"])
-            for f in deletelist:
-                log.debug(f"Deleting {f}")
-                os.remove(f)
             log.info("writing NFO")
             dest = os.path.join(show["destination"], f"{dbase}.nfo")
             log.debug(f"Writing nfo to {dest}")
             with open(dest, "w") as ofn:
                 ofn.write(show["nfo"])
+            log.info(f"Deleting from TVHeadend {show['title']}")
+            deleteRecording(show["uuid"])
+            for f in deletelist:
+                if os.path.exists(f):
+                    log.debug(f"Deleting {f}")
+                    os.remove(f)
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
 
