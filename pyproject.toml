@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "tvhtokodi", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 requests = "^2.31.0"
 fabric = "^3.1.0"
 pysimplegui = "^4.60.5"
