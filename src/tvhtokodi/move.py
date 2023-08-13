@@ -102,3 +102,7 @@ def doMove():
             log.info("Nothing to do at this time.")
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
+
+
+if __name__ == "__main__":
+    doMove()
