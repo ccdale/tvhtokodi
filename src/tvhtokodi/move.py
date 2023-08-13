@@ -56,7 +56,13 @@ def moveShow(show):
             pdir, pbase, pext = splitfn(f)
             if pext != ".ts":
                 deletelist.append(f)
-            ddir, dbase, dext = splitfn(show["destfn"])
+            # ddir, dbase, dext = splitfn(show["destfn"])
+            dext = ".ts" if not show["destfn"].endswith(".ts") else ""
+            dbase = (
+                show["destfn"][:-3]
+                if show["destfn"].endswith(".ts")
+                else show["destfn"]
+            )
             dest = os.path.join(show["destination"], f"{dbase}{dext}")
             log.debug(f"Moving {f} to {dest}")
             shutil.copy(f, dest)
@@ -83,7 +89,8 @@ def moveShow(show):
 
 def moveShows(shows):
     try:
-        log.info(f"Moving {len(shows)} shows")
+        label = "shows" if len(shows) > 1 else "show"
+        log.info(f"Moving {len(shows)} {label}")
         for show in shows:
             moveShow(show)
             break
