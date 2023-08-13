@@ -68,7 +68,7 @@ def moveShow(show):
                 continue
         if not failed:
             log.info(f"Deleting from TVHeadend {show['title']}")
-            deleteRecording(show["uuid"])
+            # deleteRecording(show["uuid"])
             for f in deletelist:
                 log.debug(f"Deleting {f}")
                 os.remove(f)
@@ -86,6 +86,7 @@ def moveShows(shows):
         log.info(f"Moving {len(shows)} shows")
         for show in shows:
             moveShow(show)
+            break
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
 
@@ -100,6 +101,8 @@ def doMove():
             with open(fqfn, "r") as ifn:
                 shows = json.load(ifn)
                 moveShows(shows)
+            log.debug(f"Removing {fqfn}")
+            os.remove(fqfn)
             log.info("All done.")
         else:
             log.info("Nothing to do at this time.")
