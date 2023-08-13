@@ -48,6 +48,7 @@ def moveShow(show):
     try:
         failed = False
         deletelist = []
+        copylist = []
         log.info(f"Moving {show['title']}")
         log.debug(f"Creating / Using directory: {show['destination']}")
         os.makedirs(show["destination"], exist_ok=True, mode=0o755)
@@ -66,10 +67,11 @@ def moveShow(show):
             dest = os.path.join(show["destination"], f"{dbase}{pext}")
             log.debug(f"Moving {f} to {dest}")
             shutil.copy(f, dest)
-        for f in files:
+            copylist.append(dest)
+        for f in copylist:
             log.debug(f"checking {dest}")
-            if not os.path.exists(dest):
-                log.error(f"Copy Failure: Unable to find {dest}")
+            if not os.path.exists(f):
+                log.error(f"Copy Failure: Unable to find {f}")
                 failed = True
                 continue
         if not failed:
