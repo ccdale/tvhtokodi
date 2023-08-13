@@ -98,6 +98,8 @@ def doMove():
         if os.path.exists(fqfn):
             with open(fqfn, "r") as ifn:
                 shows = json.load(ifn)
+                moveShows(shows)
+            log.info("All done.")
         else:
             log.info("Nothing to do at this time.")
     except Exception as e:
