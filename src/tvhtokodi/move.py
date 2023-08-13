@@ -95,7 +95,6 @@ def moveShows(shows):
         log.info(f"Moving {len(shows)} {label}")
         for show in shows:
             moveShow(show)
-            break
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
 
