@@ -86,6 +86,8 @@ def moveShow(show):
                 if os.path.exists(f):
                     log.debug(f"Deleting {f}")
                     os.remove(f)
+                else:
+                    log.error(f"Unable to find deletable file {f}")
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
 
