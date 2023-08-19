@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=tvhtokodi
+Comment=manage recordings and play them on kodi
+Icon=/home/chris/.local/share/image/tvhtokodi.png
+Exec=/home/chris/.local/bin/tvh
+Path=/
+Categories=Network
+X-Desktop-File-Install-Version=0.26

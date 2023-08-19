@@ -37,7 +37,7 @@ log = None
 def displayTitles(titles):
     try:
         op = []
-        names = [n for n in titles]
+        names = sorted([n for n in titles])
         titleslist = sg.Listbox(
             names,
             size=(60, 40),

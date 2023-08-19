@@ -110,10 +110,10 @@ def recordedTitles():
         titles = {}
         for rec in recs:
             show = tidyRecording(rec)
-            if show["title"] not in titles:
-                titles[show["title"]] = []
-            # _ = titles.get(show["title"], [])
-            titles[show["title"]].append(show)
+            if not show["filename"].startswith("/var/lib/tvheadend/radio"):
+                if show["title"] not in titles:
+                    titles[show["title"]] = []
+                titles[show["title"]].append(show)
         return recs, titles
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
