@@ -113,6 +113,7 @@ def progWindow(show, total=1):
             desc = "\n".join(tmp)
         msg = f"{total} programme" if total == 1 else f"{total} programmes"
         legend = "Move" if total == 1 else f"Move {total} Programmes"
+        checked = True if show["season"] and show["episode"] else False
         layout = [
             [sg.Text(f'{show["ctimestart"]} Duration: {hmsDisplay(show["duration"])}')],
             [sg.Text(show["title"])],
@@ -124,7 +125,9 @@ def progWindow(show, total=1):
                 [
                     sg.Combo(dests, key="-DEST-"),
                     sg.Input("Year", key="-YEAR-"),
-                    sg.Checkbox("Series Folders", key="-SERIESFOLDERS-"),
+                    sg.Checkbox(
+                        "Series Folders", key="-SERIESFOLDERS-", default=checked
+                    ),
                 ]
             ],
             [[sg.Button(legend, key="-MOVE-"), sg.Quit()]],
