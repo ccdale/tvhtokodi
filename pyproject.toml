@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tvhtokodi"
-version = "0.3.9"
+version = "0.3.10"
 description = "edit tvh recordings and import them into the kodi db"
 authors = ["ccdale <chris.charles.allison+tvhtokodi@gmail.com>"]
 readme = "README.md"
