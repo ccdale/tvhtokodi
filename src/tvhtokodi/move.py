@@ -28,7 +28,7 @@ import daemon
 
 import tvhtokodi
 from tvhtokodi import errorExit, errorNotify, errorRaise, __appname__, __version__
-from tvhtokodi.files import makeFileList, splitfn
+from tvhtokodi.files import dirFileList, makeFileList, splitfn
 from tvhtokodi.tvh import deleteRecording
 
 # log = None
@@ -126,12 +126,12 @@ def moveShows(shows):
         errorNotify(sys.exc_info()[2], e)
 
 
-def doMove():
+def doMove(fqfn):
     try:
-        setupLog(stream=sys.stdout)
-        log.info(f"{tvhtokodi.__appname__}: {tvhtokodi.__version__} starting")
-        tvhtokodi.readConfig()
-        fqfn = os.path.abspath(os.path.expanduser("~/.tvhincoming/tvhtokodi-move.json"))
+        # setupLog(stream=sys.stdout)
+        # log.info(f"{tvhtokodi.__appname__}: {tvhtokodi.__version__} starting")
+        # tvhtokodi.readConfig()
+        # fqfn = os.path.abspath(os.path.expanduser("~/.tvhincoming/tvhtokodi-move.json"))
         if os.path.exists(fqfn):
             with open(fqfn, "r") as ifn:
                 shows = json.load(ifn)
@@ -140,9 +140,35 @@ def doMove():
             os.remove(fqfn)
             log.info("All done.")
         else:
-            log.info("Nothing to do at this time.")
+            log.info("Nothing to do at this time for {fqfn} does not exist.")
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
+
+
+def filesList():
+    try:
+        incomingpath = os.path.abspath(os.path.expanduser(tvhtokodi.cfg["destination"]))
+        fns = dirFileList(incomingpath)
+        jfns = [f for f in fns if f.endswith(".json")]
+        return jfns
+    except Exception as e:
+        errorRaise(sys.exc_info()[2], e)
+
+
+def watchDir():
+    try:
+        log.debug(
+            f"{__appname__} watch dir {__version__} starting to watch {tvhtokodi.cfg['destination']}"
+        )
+        while not ev.is_set():
+            fns = filesList()
+            for f in fns:
+                fqfn = os.path.join(tvhtokodi.cfg["destination"], f)
+                doMove(fqfn)
+            ev.wait(int(tvhtokodi.cfg["watchinterval"]))
+        log.debug(f"{__appname__} watch dir {__version__} completed.")
+    except Exception as e:
+        errorRaise(sys.exc_info()[2], e)
 
 
 def daemonDirWatch():
@@ -155,7 +181,10 @@ def daemonDirWatch():
             # ccalogging.setDebug()
             ccalogging.setInfo()
             log = ccalogging.log
+            log.info(f"{tvhtokodi.__appname__}: {tvhtokodi.__version__} starting")
             log.debug(f"{__appname__}-watchdir deamonised!")
+            watchDir()
+            log.info(f"{tvhtokodi.__appname__}: {tvhtokodi.__version__} exiting")
     except Exception as e:
         errorExit(sys.exc_info()[2], e)
 

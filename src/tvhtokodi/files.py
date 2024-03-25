@@ -85,3 +85,13 @@ def makeFileList(path):
         return flist
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
+
+
+def dirFileList(path):
+    try:
+        if os.path.isdir(path):
+            return [
+                f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
+            ]
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
