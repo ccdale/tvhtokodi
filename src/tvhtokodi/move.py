@@ -19,7 +19,9 @@ import json
 import logging
 import os
 import shutil
+from signal import signal, SIGINT
 import sys
+from threading import Event
 
 import tvhtokodi
 from tvhtokodi import errorNotify
@@ -27,6 +29,25 @@ from tvhtokodi.files import makeFileList, splitfn
 from tvhtokodi.tvh import deleteRecording
 
 log = None
+
+ev = Event()
+ev.clear()
+
+
+def interruptWD(signrcvd, frame):
+    try:
+        global ev
+        msg = "Keyboard interrupt received in move module - exiting."
+        log.info(msg)
+        ev.set()
+        # sys.exit(255)
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
+
+
+# if we get a `ctrl-c` from the keyboard or a kill -15, stop immediately
+# by going to the interruptWD above
+signal(SIGINT, interruptWD)
 
 
 def setupLog(stream=sys.stderr):
