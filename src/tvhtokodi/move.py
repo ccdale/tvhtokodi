@@ -157,6 +157,8 @@ def filesList():
 
 def watchDir():
     try:
+        log.info("inside watchDir")
+        log.debug(f"{tvhtokodi.cfg=}")
         log.debug(
             f"{__appname__} watch dir {__version__} starting to watch {tvhtokodi.cfg['destination']}"
         )
@@ -178,11 +180,12 @@ def daemonDirWatch():
                 os.path.expanduser(f"~/log/{__appname__}-watchdir.log")
             )
             ccalogging.setLogFile(logfile)
-            ccalogging.setDebug()
-            # ccalogging.setInfo()
+            # ccalogging.setDebug()
+            ccalogging.setInfo()
             log = ccalogging.log
             log.info(f"{tvhtokodi.__appname__}: {tvhtokodi.__version__} starting")
             log.debug(f"{__appname__}-watchdir deamonised!")
+            tvhtokodi.readConfig()
             watchDir()
             log.info(f"{tvhtokodi.__appname__}: {tvhtokodi.__version__} exiting")
     except Exception as e:
@@ -190,4 +193,4 @@ def daemonDirWatch():
 
 
 if __name__ == "__main__":
-    doMove()
+    daemonDirWatch()
