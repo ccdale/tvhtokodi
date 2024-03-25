@@ -16,19 +16,22 @@
 #     You should have received a copy of the GNU General Public License
 #     along with tvhtokodi.  If not, see <http://www.gnu.org/licenses/>.
 import json
-import logging
 import os
 import shutil
 from signal import signal, SIGINT
 import sys
 from threading import Event
 
+import ccalogging
+from ccalogging import log
+import daemon
+
 import tvhtokodi
-from tvhtokodi import errorNotify
+from tvhtokodi import errorExit, errorNotify, errorRaise, __appname__, __version__
 from tvhtokodi.files import makeFileList, splitfn
 from tvhtokodi.tvh import deleteRecording
 
-log = None
+# log = None
 
 ev = Event()
 ev.clear()
@@ -140,6 +143,21 @@ def doMove():
             log.info("Nothing to do at this time.")
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
+
+
+def daemonDirWatch():
+    try:
+        with daemon.DaemonContext():
+            logfile = os.path.abspath(
+                os.path.expanduser(f"~/log/{__appname__}-watchdir.log")
+            )
+            ccalogging.setLogFile(logfile)
+            # ccalogging.setDebug()
+            ccalogging.setInfo()
+            log = ccalogging.log
+            log.debug(f"{__appname__}-watchdir deamonised!")
+    except Exception as e:
+        errorExit(sys.exc_info()[2], e)
 
 
 if __name__ == "__main__":
