@@ -178,8 +178,8 @@ def daemonDirWatch():
                 os.path.expanduser(f"~/log/{__appname__}-watchdir.log")
             )
             ccalogging.setLogFile(logfile)
-            # ccalogging.setDebug()
-            ccalogging.setInfo()
+            ccalogging.setDebug()
+            # ccalogging.setInfo()
             log = ccalogging.log
             log.info(f"{tvhtokodi.__appname__}: {tvhtokodi.__version__} starting")
             log.debug(f"{__appname__}-watchdir deamonised!")
