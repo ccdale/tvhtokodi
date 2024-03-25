@@ -210,6 +210,8 @@ def sendNextFile(move):
         with open(opfn, "w") as ofn:
             json.dump(move, ofn, indent=4)
         sendFileTo(opfn)
+        if fnum == 99:
+            fnum = 0
         tvhtokodi.cfg["filenumber"] = f"{fnum + 1}"
         tvhtokodi.writeConfig()
     except Exception as e:
