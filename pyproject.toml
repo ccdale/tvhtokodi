@@ -19,7 +19,7 @@ pytest = "^7.3.2"
 
 [tool.poetry.scripts]
 tvh = "tvhtokodi.gui:doGui"
-tvhtokodi = "tvhtokodi.move:doMove"
+tvhtokodi = "tvhtokodi.move:daemonDirWatch"
 
 [build-system]
 requires = ["poetry-core"]
