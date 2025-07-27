@@ -22,7 +22,6 @@ import re
 import sys
 import time
 
-import tvhtokodi
 from tvhtokodi import errorNotify
 from tvhtokodi.tvh import allRecordings
 
@@ -31,8 +30,9 @@ def cleanStringStart(xstr, remove="new:"):
     try:
         if xstr is None:
             return None
-        xs = xstr[len(remove) :] if xstr.lower().startswith(remove) else xstr
-        return xs.strip()
+        elif xstr.lower().startswith(remove.lower()):
+            xstr = xstr[len(remove) :]  # noqa: E203
+        return xstr.strip()
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
 
@@ -73,7 +73,9 @@ def tidyRecording(rec):
         extdesc = rec.get("disp_extratext", None)
         if extdesc:
             oprec["description"] += f". {extdesc}"
-        oprec["season"], oprec["episode"] = getEpisode(rec.get("episode_disp", None))
+        oprec["season"], oprec["episode"] = getEpisode(
+            rec.get("episode_disp", None)
+        )  # noqa: E501
         return oprec
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
@@ -105,7 +107,7 @@ def getEpisode(eps):
 
 
 def recordedTitles():
-    """Obtain all recorded titles as a dictionary of lists of those recordings."""
+    """Obtain all recorded titles as a dictionary of lists of those recordings."""  # noqa: E501
     try:
         recs, tot = allRecordings()
         titles = {}

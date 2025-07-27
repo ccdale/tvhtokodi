@@ -17,8 +17,9 @@ def listItems(items, xkey="disp_title"):
             ex = ""
             if "copyright_year" in item:
                 ex = f"{item['copyright_year']}"
-            rows.append([cn, item[xkey], ex, hmsDisplay(item.get("duration", 0))])
-            # print(f"{cn:>3} {item[xkey]}{ex} {hmsDisplay(item['duration'])}")
+            dur = hmsDisplay(item.get("duration", 0))
+            row = [cn, item[xkey], ex, dur]
+            rows.append(row)
         print(tabulate(rows))
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
@@ -46,7 +47,6 @@ def findFilms(recs):
 
 def displayFilms(recs):
     try:
-        xkey = "disp_title"
         films = findFilms(recs)
         if not films:
             raise Exception("No films found in recordings.")
@@ -64,28 +64,6 @@ def displayFilms(recs):
             print(f"Film Source: {film['filename']}")
             # sendNextFile([film])
             print()
-        # print("All films sent to Kodi.")
-        # while True:
-        #     print("\nFilms in Recordings:")
-        #     listItems(films, xkey=xkey)
-        #     choice = input(
-        #         "\nSelect a film by number, (S)end all to kodi (or 'q' to quit): "
-        #     )
-        #     if choice.lower() == "q":
-        #         break
-        #     elif choice.lower() == "s":
-        #         print("Sending all films to Kodi...")
-        #         break
-        #     try:
-        #         choice_index = int(choice) - 1
-        #         if 0 <= choice_index < len(films):
-        #             selected_film = films[choice_index]
-        #             films = filmMenu(selected_film, films, choice_index)
-        #         else:
-        #             print("Invalid selection. Please try again.")
-        #     except ValueError:
-        #         print("Please enter a valid number.")
-        # return films
     except Exception as e:
         errorExit(sys.exc_info()[2], e)
 
