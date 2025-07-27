@@ -68,6 +68,7 @@ def tidyRecording(rec):
             "stop_real": rec.get("stop_real", 0),
             "disp_description": rec.get("disp_description", None),
             "ctimestart": time.ctime(rec.get("start_real", None)),
+            "category": rec.get("category", []),
         }
         extdesc = rec.get("disp_extratext", None)
         if extdesc:

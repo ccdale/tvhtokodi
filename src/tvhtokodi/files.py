@@ -36,7 +36,7 @@ def sendFileTo(fn):
         ofn = os.path.abspath(
             os.path.expanduser(f"{tvhtokodi.cfg['destination']}/{bfn}")
         )
-        print(f"sending {fn} to druid as {ofn}")
+        print(f"sending {fn} to {mhost} as {ofn}")
         with Connection(host=mhost, user=muser, connect_kwargs=ckwargs) as c:
             c.put(fn, ofn)
     except Exception as e:
