@@ -16,3 +16,6 @@ tests/*json
 tests/*mp2
 tests/*mp3
 tags
+recs.json
+titles.json
+tvhtokodi-example.json
