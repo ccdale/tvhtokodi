@@ -109,7 +109,7 @@ def getEpisode(eps):
 def recordedTitles():
     """Obtain all recorded titles as a dictionary of lists of those recordings."""  # noqa: E501
     try:
-        recs, tot = allRecordings()
+        recs, _ = allRecordings()
         titles = {}
         for rec in recs:
             show = tidyRecording(rec)
