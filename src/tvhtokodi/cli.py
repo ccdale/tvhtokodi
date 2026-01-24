@@ -22,6 +22,7 @@ def refreshNames(names, sent):
 
 def main():
     try:
+        print(f"{tvhtokodi.appname} version {tvhtokodi.version}")
         tvhtokodi.readConfig()
         recs, titles = recordedTitles()
         displayFilms(recs)

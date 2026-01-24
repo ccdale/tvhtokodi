@@ -17,6 +17,7 @@
 #     along with tvhtokodi.  If not, see <http://www.gnu.org/licenses/>.
 #
 import json
+import subprocess
 import sys
 from pathlib import Path
 
