@@ -17,12 +17,10 @@
 #     along with tvhtokodi.  If not, see <http://www.gnu.org/licenses/>.
 #
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
-
-__version__ = "0.3.11"
-__appname__ = "tvhtokodi"
+import tomllib
 
 configfn = Path.home().joinpath(".config", f"{__appname__}.json")
 cfg = {}
@@ -63,3 +61,69 @@ def readConfig():
             cfg = json.load(ifn)
     except Exception as e:
         errorExit(sys.exc_info()[2], e)
+
+def gitroot() -> str:
+    """
+    Get the root directory of the current git repository.
+    Returns:
+        str: Path to the root directory of the git repository.
+    """
+    try:
+        return (
+            subprocess.check_output(
+                ["git", "rev-parse", "--show-toplevel"], text=True
+            )  # noqa: E501
+            .splitlines()
+            .pop()
+        )
+    except Exception as e:
+        errorExit(sys.exc_info()[2], e)
+        return ""
+
+
+def getProjectData() -> dict:
+    """
+    Get the project data from pyproject.toml.
+    Returns:
+        dict: The project data.
+    """
+    try:
+        git_root = gitroot()
+        if not git_root:
+            return {}
+        pyproject_path = Path(git_root) / "pyproject.toml"
+        if not pyproject_path.exists():
+            return {}
+        with open(pyproject_path, "rb") as f:
+            pyproject_data = tomllib.load(f)
+        return pyproject_data.get("project", {})
+    except Exception as e:
+        errorExit(sys.exc_info()[2], e)
+
+
+def getVersion() -> str:
+    """
+    Get the version of the project from pyproject.toml.
+    Returns:
+        str: The version string.
+    """
+    try:
+        pyproject_data = getProjectData()
+        return pyproject_data.get("version", "0.0.0")
+    except Exception as e:
+        errorExit(sys.exc_info()[2], e)
+
+def getAppName() -> str:
+    """
+    Get the application name from pyproject.toml.
+    Returns:
+        str: The application name.
+    """
+    try:
+        pyproject_data = getProjectData()
+        return pyproject_data.get("name", "tvhtokodi")
+    except Exception as e:
+        errorExit(sys.exc_info()[2], e)
+
+__version__ = getVersion()
+__appname__ = getAppName()
