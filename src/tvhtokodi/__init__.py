@@ -22,9 +22,6 @@ from pathlib import Path
 
 import tomllib
 
-configfn = Path.home().joinpath(".config", f"{__appname__}.json")
-cfg = {}
-
 
 def errorNotify(exci, e, fname=None):
     lineno = exci.tb_lineno
@@ -127,3 +124,5 @@ def getAppName() -> str:
 
 __version__ = getVersion()
 __appname__ = getAppName()
+configfn = Path.home().joinpath(".config", f"{__appname__}.json")
+cfg = {}
