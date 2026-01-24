@@ -27,9 +27,9 @@ import PySimpleGUI as sg
 
 import tvhtokodi
 from tvhtokodi import errorNotify
-from tvhtokodi.recordings import recordedTitles
-from tvhtokodi.nfo import hmsDisplay, makeProgNfo, makeFilmNfo
 from tvhtokodi.files import sendFileTo
+from tvhtokodi.nfo import hmsDisplay, makeFilmNfo, makeProgNfo
+from tvhtokodi.recordings import recordedTitles
 
 log = None
 
@@ -226,7 +226,7 @@ def doGui():
         cfmt = logging.Formatter(cformat, datefmt=datefmt)
         consH = logging.StreamHandler(sys.stderr)
         consH.setFormatter(cfmt)
-        log = logging.getLogger(tvhtokodi.__appname__)
+        log = logging.getLogger(tvhtokodi.appname)
         log.addHandler(consH)
         log.setLevel(logging.DEBUG)
         tvhtokodi.readConfig()

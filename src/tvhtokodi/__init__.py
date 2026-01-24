@@ -122,7 +122,7 @@ def getAppName() -> str:
     except Exception as e:
         errorExit(sys.exc_info()[2], e)
 
-__version__ = getVersion()
-__appname__ = getAppName()
-configfn = Path.home().joinpath(".config", f"{__appname__}.json")
+version = getVersion()
+appname = getAppName()
+configfn = Path.home().joinpath(".config", f"{appname}.json")
 cfg = {}

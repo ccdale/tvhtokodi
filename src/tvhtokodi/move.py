@@ -18,16 +18,16 @@
 import json
 import os
 import shutil
-from signal import signal, SIGINT
 import sys
+from signal import SIGINT, signal
 from threading import Event
 
 import ccalogging
-from ccalogging import log
 import daemon
+from ccalogging import log
 
 import tvhtokodi
-from tvhtokodi import errorExit, errorNotify, errorRaise, __appname__, __version__
+from tvhtokodi import appname, errorExit, errorNotify, errorRaise, version
 from tvhtokodi.files import dirFileList, makeFileList, splitfn
 from tvhtokodi.tvh import deleteRecording
 
@@ -61,7 +61,7 @@ def setupLog(stream=sys.stderr):
         cfmt = logging.Formatter(cformat, datefmt=datefmt)
         consH = logging.StreamHandler(stream)
         consH.setFormatter(cfmt)
-        log = logging.getLogger(tvhtokodi.__appname__)
+        log = logging.getLogger(tvhtokodi.appname)
         log.addHandler(consH)
         log.setLevel(logging.DEBUG)
     except Exception as e:
@@ -160,7 +160,7 @@ def watchDir():
         log.info("inside watchDir")
         log.debug(f"{tvhtokodi.cfg=}")
         log.debug(
-            f"{__appname__} watch dir {__version__} starting to watch {tvhtokodi.cfg['destination']}"
+            f"{appname} watch dir {version} starting to watch {tvhtokodi.cfg['destination']}"
         )
         while not ev.is_set():
             fns = filesList()
@@ -168,7 +168,7 @@ def watchDir():
                 fqfn = os.path.join(tvhtokodi.cfg["destination"], f)
                 doMove(fqfn)
             ev.wait(int(tvhtokodi.cfg["watchinterval"]))
-        log.debug(f"{__appname__} watch dir {__version__} completed.")
+        log.debug(f"{appname} watch dir {version} completed.")
     except Exception as e:
         errorRaise(sys.exc_info()[2], e)
 
@@ -177,17 +177,17 @@ def daemonDirWatch():
     try:
         with daemon.DaemonContext():
             logfile = os.path.abspath(
-                os.path.expanduser(f"~/log/{__appname__}-watchdir.log")
+                os.path.expanduser(f"~/log/{appname}-watchdir.log")
             )
             ccalogging.setLogFile(logfile)
             # ccalogging.setDebug()
             ccalogging.setInfo()
             log = ccalogging.log
-            log.info(f"{tvhtokodi.__appname__}: {tvhtokodi.__version__} starting")
-            log.debug(f"{__appname__}-watchdir deamonised!")
+            log.info(f"{tvhtokodi.appname}: {tvhtokodi.version} starting")
+            log.debug(f"{appname}-watchdir deamonised!")
             tvhtokodi.readConfig()
             watchDir()
-            log.info(f"{tvhtokodi.__appname__}: {tvhtokodi.__version__} exiting")
+            log.info(f"{tvhtokodi.appname}: {tvhtokodi.version} exiting")
     except Exception as e:
         errorExit(sys.exc_info()[2], e)
 
