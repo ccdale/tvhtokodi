@@ -19,12 +19,13 @@
 import json
 import subprocess
 import sys
+import types
 from pathlib import Path
 
 import tomllib
 
 
-def errorNotify(exci, e, fname=None):
+def errorNotify(exci: types.TracebackType, e: Exception, fname: str = None) -> None:
     lineno = exci.tb_lineno
     if fname is None:
         fname = exci.tb_frame.f_code.co_name
@@ -34,17 +35,17 @@ def errorNotify(exci, e, fname=None):
     print(msg)
 
 
-def errorRaise(exci, e, fname=None):
+def errorRaise(exci: types.TracebackType, e: Exception, fname: str = None) -> None:
     errorNotify(exci, e, fname)
     raise
 
 
-def errorExit(exci, e, fname=None):
+def errorExit(exci: types.TracebackType, e: Exception, fname: str = None) -> None:
     errorNotify(exci, e, fname)
     sys.exit(1)
 
 
-def writeConfig():
+def writeConfig() -> None:
     try:
         with open(str(configfn), "w") as ofn:
             json.dump(cfg, ofn, indent=4)
@@ -52,7 +53,7 @@ def writeConfig():
         errorExit(sys.exc_info()[2], e)
 
 
-def readConfig():
+def readConfig() -> None:
     try:
         global cfg
         with open(str(configfn), "r") as ifn:
