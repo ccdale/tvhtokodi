@@ -25,7 +25,7 @@ import tvhtokodi
 from tvhtokodi import errorNotify
 
 
-def sendFileTo(fn):
+def sendFileTo(fn: str) -> None:
     """transfers file 'fn' via ssh to the sshhost."""
     try:
         mhost = tvhtokodi.cfg["sshhost"]
@@ -43,7 +43,7 @@ def sendFileTo(fn):
         errorNotify(sys.exc_info()[2], e)
 
 
-def splitfn(path):
+def splitfn(path: str) -> list:
     try:
         """split a filename into a list of dir, base, ext"""
         parts = os.path.split(path)
@@ -53,7 +53,7 @@ def splitfn(path):
         errorNotify(sys.exc_info()[2], e)
 
 
-def findExtraFile(path, ext):
+def findExtraFile(path: str, ext: str) -> str:
     """find a file with the same name as 'path' but with extension 'ext'"""
     try:
         pdir, pfile, pext = splitfn(path)
@@ -65,7 +65,7 @@ def findExtraFile(path, ext):
         errorNotify(sys.exc_info()[2], e)
 
 
-def makeFileList(path):
+def makeFileList(path: str) -> list:
     """make a list of files corresponding to the recordings in tvheadend
 
     path is the path to the recording file
@@ -87,7 +87,7 @@ def makeFileList(path):
         errorNotify(sys.exc_info()[2], e)
 
 
-def dirFileList(path):
+def dirFileList(path: str) -> list:
     try:
         if os.path.isdir(path):
             return [

@@ -26,7 +26,7 @@ from tvhtokodi import errorNotify
 from tvhtokodi.tvh import allRecordings
 
 
-def cleanStringStart(xstr, remove="new:"):
+def cleanStringStart(xstr: str, remove: str = "new:") -> str:
     try:
         if xstr is None:
             return None
@@ -37,7 +37,7 @@ def cleanStringStart(xstr, remove="new:"):
         errorNotify(sys.exc_info()[2], e)
 
 
-def cleanTitle(title):
+def cleanTitle(title: str) -> str:
     """rules to clean up the title string."""
     try:
         xt = cleanStringStart(title, remove="new:")
@@ -47,7 +47,7 @@ def cleanTitle(title):
         errorNotify(sys.exc_info()[2], e)
 
 
-def tidyRecording(rec):
+def tidyRecording(rec: dict) -> dict:
     """retrieve the info we want about each recording."""
     try:
         oprec = {
@@ -81,7 +81,7 @@ def tidyRecording(rec):
         errorNotify(sys.exc_info()[2], e)
 
 
-def getEpisode(eps):
+def getEpisode(eps: str) -> tuple[int, int]:
     """extracts the season and episode numbers if they exist
 
     the input string, eps,  is of the form:
@@ -106,7 +106,7 @@ def getEpisode(eps):
         errorNotify(sys.exc_info()[2], e)
 
 
-def recordedTitles():
+def recordedTitles() -> tuple[list[dict], list[dict]]:
     """Obtain all recorded titles as a dictionary of lists of those recordings."""  # noqa: E501
     try:
         recs, _ = allRecordings()

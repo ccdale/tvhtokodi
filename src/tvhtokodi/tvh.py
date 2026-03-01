@@ -18,19 +18,20 @@
 #
 """tvh module for tvhtokodi"""
 
+import json
 import sys
 
 import requests
 
 import tvhtokodi
-from tvhtokodi import errorExit, errorNotify, errorRaise
+from tvhtokodi import errorNotify
 
 
 class TVHError(Exception):
     pass
 
 
-def sendToTvh(route, data=None):
+def sendToTvh(route: str, data: dict = None) -> dict:
     """Send a request to tvheadend"""
     try:
         auth = (tvhtokodi.cfg["tvhuser"], tvhtokodi.cfg["tvhpass"])
@@ -39,16 +40,16 @@ def sendToTvh(route, data=None):
         if r.status_code != 200:
             raise TVHError(f"error communicating with tvh: {r}")
         return r.json()
-    except Exception as e:
+    except Exception:
         try:
             print("Error decoding json from tvh, trying again")
             txt = r.text.replace(chr(25), " ")
             return json.loads(txt)
         except Exception as xe:
-            errorNotify(sys.exc_info()[2], e)
+            errorNotify(sys.exc_info()[2], xe)
 
 
-def allRecordings():
+def allRecordings() -> tuple[list[dict], int]:
     try:
         route = "dvr/entry/grid_finished"
         data = {"limit": 9999}
@@ -58,7 +59,7 @@ def allRecordings():
         errorNotify(sys.exc_info()[2], e)
 
 
-def deleteRecording(uuid):
+def deleteRecording(uuid: str) -> None:
     try:
         data = {"uuid": uuid}
         sendToTvh("dvr/entry/remove", data)

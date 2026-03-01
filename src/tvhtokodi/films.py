@@ -10,7 +10,7 @@ from tvhtokodi.files import sendFileTo
 from tvhtokodi.nfo import hmsDisplay
 
 
-def listItems(items, xkey="disp_title"):
+def listItems(items: list, xkey: str = "disp_title") -> None:
     try:
         rows = []
         for cn, item in enumerate(items, 1):
@@ -25,7 +25,7 @@ def listItems(items, xkey="disp_title"):
         errorNotify(sys.exc_info()[2], e)
 
 
-def findFilms(recs):
+def findFilms(recs: list) -> list:
     try:
         films = []
         for rec in recs:
@@ -45,7 +45,7 @@ def findFilms(recs):
         errorRaise(sys.exc_info()[2], e)
 
 
-def displayFilms(recs):
+def displayFilms(recs: list) -> None:
     try:
         films = findFilms(recs)
         if not films:
@@ -68,7 +68,7 @@ def displayFilms(recs):
         errorExit(sys.exc_info()[2], e)
 
 
-def filmMenu(film, films, choice_index):
+def filmMenu(film: dict, films: list, choice_index: int) -> list:
     try:
         print(f"Film Menu for: {film['disp_title']}")
         choice = input("(I)gnore, Enter to go back: ").lower()
@@ -80,7 +80,7 @@ def filmMenu(film, films, choice_index):
         errorRaise(sys.exc_info()[2], e)
 
 
-def sendNextFile(move):
+def sendNextFile(move: list) -> None:
     try:
         fnum = int(tvhtokodi.cfg["filenumber"])
         opfn = f"/tmp/tvhtokodi-move-{fnum}.json"
@@ -95,7 +95,7 @@ def sendNextFile(move):
         errorRaise(sys.exc_info()[2], e)
 
 
-def titleInitial(title):
+def titleInitial(title: str) -> str:
     try:
         tmp = title.split(" ")
         first = tmp[0].lower()
@@ -104,3 +104,4 @@ def titleInitial(title):
         return first[:1].upper()
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
+        return ""

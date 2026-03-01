@@ -6,7 +6,7 @@ from tvhtokodi.films import displayFilms
 from tvhtokodi.recordings import recordedTitles
 
 
-def refreshNames(names, sent):
+def refreshNames(names: list, sent: list) -> list:
     try:
         ignored = tvhtokodi.cfg["ignoretitles"]
         for n in sent:

@@ -125,6 +125,8 @@ def getAppName() -> str:
         errorExit(sys.exc_info()[2], e)
 
 version = getVersion()
+__version__ = version
 appname = getAppName()
+__appname__ = appname
 configfn = Path.home().joinpath(".config", f"{appname}.json")
 cfg = {}

@@ -19,6 +19,7 @@ import json
 import os
 import shutil
 import sys
+import types
 from signal import SIGINT, signal
 from threading import Event
 
@@ -27,7 +28,7 @@ import daemon
 from ccalogging import log
 
 import tvhtokodi
-from tvhtokodi import appname, errorExit, errorNotify, errorRaise, version
+from tvhtokodi import errorExit, errorNotify, errorRaise
 from tvhtokodi.files import dirFileList, makeFileList, splitfn
 from tvhtokodi.tvh import deleteRecording
 
@@ -37,7 +38,7 @@ ev = Event()
 ev.clear()
 
 
-def interruptWD(signrcvd, frame):
+def interruptWD(signrcvd: int, frame: types.FrameType) -> None:
     try:
         global ev
         msg = "Keyboard interrupt received in move module - exiting."
@@ -53,22 +54,8 @@ def interruptWD(signrcvd, frame):
 signal(SIGINT, interruptWD)
 
 
-def setupLog(stream=sys.stderr):
-    try:
-        global log
-        cformat = "%(asctime)s [%(levelname)-5.5s]  %(message)s"
-        datefmt = "%d/%m/%Y %H:%M:%S"
-        cfmt = logging.Formatter(cformat, datefmt=datefmt)
-        consH = logging.StreamHandler(stream)
-        consH.setFormatter(cfmt)
-        log = logging.getLogger(tvhtokodi.appname)
-        log.addHandler(consH)
-        log.setLevel(logging.DEBUG)
-    except Exception as e:
-        errorNotify(sys.exc_info()[2], e)
 
-
-def moveShow(show):
+def moveShow(show: dict) -> None:
     try:
         failed = False
         deletelist = []
@@ -116,7 +103,7 @@ def moveShow(show):
         errorNotify(sys.exc_info()[2], e)
 
 
-def moveShows(shows):
+def moveShows(shows: list[dict]) -> None:
     try:
         label = "shows" if len(shows) > 1 else "show"
         log.info(f"Moving {len(shows)} {label}")
@@ -126,7 +113,7 @@ def moveShows(shows):
         errorNotify(sys.exc_info()[2], e)
 
 
-def doMove(fqfn):
+def doMove(fqfn: str) -> None:
     try:
         # setupLog(stream=sys.stdout)
         # log.info(f"{tvhtokodi.__appname__}: {tvhtokodi.__version__} starting")
@@ -145,7 +132,7 @@ def doMove(fqfn):
         errorNotify(sys.exc_info()[2], e)
 
 
-def filesList():
+def filesList() -> list[str]:
     try:
         incomingpath = os.path.abspath(os.path.expanduser(tvhtokodi.cfg["destination"]))
         fns = dirFileList(incomingpath)
@@ -155,12 +142,12 @@ def filesList():
         errorRaise(sys.exc_info()[2], e)
 
 
-def watchDir():
+def watchDir() -> None:
     try:
         log.info("inside watchDir")
         log.debug(f"{tvhtokodi.cfg=}")
         log.debug(
-            f"{appname} watch dir {version} starting to watch {tvhtokodi.cfg['destination']}"
+            f"{tvhtokodi.__appname__} watch dir {tvhtokodi.__version__} starting to watch {tvhtokodi.cfg['destination']}"
         )
         while not ev.is_set():
             fns = filesList()
@@ -168,26 +155,26 @@ def watchDir():
                 fqfn = os.path.join(tvhtokodi.cfg["destination"], f)
                 doMove(fqfn)
             ev.wait(int(tvhtokodi.cfg["watchinterval"]))
-        log.debug(f"{appname} watch dir {version} completed.")
+        log.debug(f"{tvhtokodi.__appname__} watch dir {tvhtokodi.__version__} completed.")
     except Exception as e:
         errorRaise(sys.exc_info()[2], e)
 
 
-def daemonDirWatch():
+def daemonDirWatch() -> None:
     try:
         with daemon.DaemonContext():
             logfile = os.path.abspath(
-                os.path.expanduser(f"~/log/{appname}-watchdir.log")
+                os.path.expanduser(f"~/log/{tvhtokodi.__appname__}-watchdir.log")
             )
             ccalogging.setLogFile(logfile)
             # ccalogging.setDebug()
             ccalogging.setInfo()
             log = ccalogging.log
-            log.info(f"{tvhtokodi.appname}: {tvhtokodi.version} starting")
-            log.debug(f"{appname}-watchdir deamonised!")
+            log.info(f"{tvhtokodi.__appname__}: {tvhtokodi.__version__} starting")
+            log.debug(f"{tvhtokodi.__appname__}-watchdir deamonised!")
             tvhtokodi.readConfig()
             watchDir()
-            log.info(f"{tvhtokodi.appname}: {tvhtokodi.version} exiting")
+            log.info(f"{tvhtokodi.__appname__}: {tvhtokodi.__version__} exiting")
     except Exception as e:
         errorExit(sys.exc_info()[2], e)
 
