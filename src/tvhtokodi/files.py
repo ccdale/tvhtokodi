@@ -70,14 +70,15 @@ def makeFileList(path: str) -> list:
 
     path is the path to the recording file
 
-    will look for .txt, .nfo, and .srt files with the same name as the recording
+    will look for .txt, .nfo, .sm and .srt files with the same name as the recording
     .txt files are assumed to be comskip files
+    .sm files are assumed to be commercial skip files
     .nfo files are assumed to be kodi metadata files
     .srt files are assumed to be subtitles
     """
     try:
         flist = [path]
-        extensions = [".txt", ".nfo", ".srt"]
+        extensions = [".txt", ".nfo", ".sm", ".srt"]
         for ext in extensions:
             extra = findExtraFile(path, ext)
             if extra:
