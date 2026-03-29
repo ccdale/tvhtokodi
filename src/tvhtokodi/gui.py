@@ -34,6 +34,22 @@ from tvhtokodi.tvh import allRecordings
 log = logging.getLogger(tvhtokodi.appname)
 
 
+def escape_markup(text: str) -> str:
+    """Escape special HTML/XML characters for use in GTK markup.
+    
+    Escapes: &, <, >, ", '
+    """
+    if not text:
+        return text
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+    )
+
+
 class RecordingRow(Gtk.Box):
     """A single recording row showing title, duration, and metadata."""
 
@@ -48,7 +64,8 @@ class RecordingRow(Gtk.Box):
 
         # Title
         title_label = Gtk.Label()
-        title_label.set_markup(f"<b>{recording.get('title', 'Unknown')}</b>")
+        title_text = escape_markup(recording.get("title", "Unknown"))
+        title_label.set_markup(f"<b>{title_text}</b>")
         title_label.set_halign(Gtk.Align.START)
         self.append(title_label)
 
@@ -160,7 +177,8 @@ class RecordingDetailPane(Gtk.Box):
         self.recording = recording
 
         title = recording.get("title", "Unknown")
-        self.title_label.set_markup(f"<b><large>{title}</large></b>")
+        escaped_title = escape_markup(title)
+        self.title_label.set_markup(f"<b><large>{escaped_title}</large></b>")
 
         channel = recording.get("channelname", "Unknown")
         date = recording.get("ctimestart", "")
