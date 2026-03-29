@@ -44,6 +44,7 @@ from tvhtokodi.remotefiles import (
 from tvhtokodi.tvh import allRecordings, deleteRecording
 
 log = logging.getLogger(tvhtokodi.appname)
+MOVE_LOCK = threading.Lock()
 
 
 def escape_markup(text: str) -> str:
@@ -439,6 +440,12 @@ class RecordingsWindow(Adw.ApplicationWindow):
         if response != "move":
             return
 
+        if MOVE_LOCK.locked():
+            self._show_error(
+                "Another move is currently in progress. Please wait for it to finish."
+            )
+            return
+
         # Start move in background thread
         threading.Thread(
             target=self._execute_move, args=(recording, category), daemon=True
@@ -449,77 +456,80 @@ class RecordingsWindow(Adw.ApplicationWindow):
 
     def _execute_move(self, recording: dict, category: str) -> None:
         """Execute the move operation (background thread)."""
-        try:
-            # Enrich recording with destination path and metadata
-            destination = self._compute_destination(recording, category)
-            recording["destination"] = destination
-            recording["category"] = category
-
-            # Generate appropriate NFO file
-            if category == "film":
-                # For films, if no year, use current year as fallback
-                if (
-                    "copyright_year" not in recording
-                    or recording["copyright_year"] < 1900
-                ):
-                    import time
-
-                    recording["year"] = time.localtime().tm_year
-                else:
-                    recording["year"] = recording["copyright_year"]
-                nfo_content = makeFilmNfo(recording)
-            else:
-                nfo_content = makeProgNfo(recording)
-
-            recording["nfo"] = nfo_content
-
-            log.info(
-                f"Moving {recording['title']} to {destination} category={category}"
-            )
-
-            # Get all associated files (srt, nfo, txt, etc) from remote host.
-            recording["allfiles"] = allShowFiles(recording)
-            log.info(f"Associated files: {recording['allfiles']}")
-            if not recording["allfiles"]:
-                raise RuntimeError("No source files found for the selected recording")
-
-            # Copy files on the media server via Fabric/SSH (includes mkdir -p).
-            copied = copyTVFiles(recording["allfiles"], destination, banner=True)
-            if not copied:
-                raise RuntimeError("Remote copy failed")
-
-            # Write generated metadata into destination as a Kodi .nfo file.
-            nfo_remote = str(
-                Path(destination) / f"{Path(recording['filename']).stem}.nfo"
-            )
-            nfo_written = remoteWriteTextFile(nfo_remote, recording["nfo"], banner=True)
-            if not nfo_written:
-                raise RuntimeError(f"Failed to write NFO file: {nfo_remote}")
-
-            # Request TVHeadend to remove the DVR entry and source files.
-            deleteRecording(recording["uuid"])
-
-            # Trigger Kodi scan for the category root path.
-            scan_warning = ""
+        with MOVE_LOCK:
             try:
-                scan_root = kodi_scan_path_for_category(category)
-                scan_kodi_path(scan_root, showdialogs=False)
-            except Exception as scan_exc:
-                scan_warning = f"Kodi scan warning: {scan_exc}"
-                log.warning(scan_warning)
+                # Enrich recording with destination path and metadata
+                destination = self._compute_destination(recording, category)
+                recording["destination"] = destination
+                recording["category"] = category
 
-            # Verify whether source files still exist after deletion request.
-            remaining = [fn for fn in recording["allfiles"] if remoteExists(fn)]
-            GLib.idle_add(
-                self._on_move_success,
-                recording.get("title", "Unknown"),
-                len(remaining),
-                scan_warning,
-            )
-        except Exception as e:
-            error_msg = f"Move failed: {str(e)}"
-            errorNotify(sys.exc_info()[2], e)
-            GLib.idle_add(self._on_move_failure, error_msg)
+                # Generate appropriate NFO file
+                if category == "film":
+                    # For films, if no year, use current year as fallback
+                    if (
+                        "copyright_year" not in recording
+                        or recording["copyright_year"] < 1900
+                    ):
+                        import time
+
+                        recording["year"] = time.localtime().tm_year
+                    else:
+                        recording["year"] = recording["copyright_year"]
+                    nfo_content = makeFilmNfo(recording)
+                else:
+                    nfo_content = makeProgNfo(recording)
+
+                recording["nfo"] = nfo_content
+
+                log.info(
+                    f"Moving {recording['title']} to {destination} category={category}"
+                )
+
+                # Get all associated files (srt, nfo, txt, etc) from remote host.
+                recording["allfiles"] = allShowFiles(recording)
+                log.info(f"Associated files: {recording['allfiles']}")
+                if not recording["allfiles"]:
+                    raise RuntimeError("No source files found for the selected recording")
+
+                # Copy files on the media server via Fabric/SSH (includes mkdir -p).
+                copied = copyTVFiles(recording["allfiles"], destination, banner=True)
+                if not copied:
+                    raise RuntimeError("Remote copy failed")
+
+                # Write generated metadata into destination as a Kodi .nfo file.
+                nfo_remote = str(
+                    Path(destination) / f"{Path(recording['filename']).stem}.nfo"
+                )
+                nfo_written = remoteWriteTextFile(
+                    nfo_remote, recording["nfo"], banner=True
+                )
+                if not nfo_written:
+                    raise RuntimeError(f"Failed to write NFO file: {nfo_remote}")
+
+                # Request TVHeadend to remove the DVR entry and source files.
+                deleteRecording(recording["uuid"])
+
+                # Trigger Kodi scan for the category root path.
+                scan_warning = ""
+                try:
+                    scan_root = kodi_scan_path_for_category(category)
+                    scan_kodi_path(scan_root, showdialogs=False)
+                except Exception as scan_exc:
+                    scan_warning = f"Kodi scan warning: {scan_exc}"
+                    log.warning(scan_warning)
+
+                # Verify whether source files still exist after deletion request.
+                remaining = [fn for fn in recording["allfiles"] if remoteExists(fn)]
+                GLib.idle_add(
+                    self._on_move_success,
+                    recording.get("title", "Unknown"),
+                    len(remaining),
+                    scan_warning,
+                )
+            except Exception as e:
+                error_msg = f"Move failed: {str(e)}"
+                errorNotify(sys.exc_info()[2], e)
+                GLib.idle_add(self._on_move_failure, error_msg)
 
     def _on_move_success(
         self, title: str, remaining_count: int, scan_warning: str = ""

@@ -10,12 +10,22 @@ from tvhtokodi.files import humanSize
 from tvhtokodi.tvh import TVHError
 
 
+def _cfg_bool(key: str, default: bool = False) -> bool:
+    """Read a boolean-like config value from tvhtokodi.cfg."""
+    raw = tvhtokodi.cfg.get(key, default)
+    if isinstance(raw, bool):
+        return raw
+    if isinstance(raw, str):
+        return raw.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(raw)
+
+
 def remoteCommand(cmd: str, banner: bool = False, failok: bool = False) -> str:
     """run a command on the media server"""
     try:
         mhost = tvhtokodi.cfg["sshhost"]
         muser = tvhtokodi.cfg["sshuser"]
-        mkeyfn = expandPath(f'~/.ssh/{tvhtokodi.cfg["keyfn"]}')
+        mkeyfn = expandPath(f"~/.ssh/{tvhtokodi.cfg['keyfn']}")
         ckwargs = {"key_filename": mkeyfn}
         if banner:
             print(f"Running remote command on {mhost}: {cmd}", flush=True)
@@ -32,6 +42,7 @@ def remoteCommand(cmd: str, banner: bool = False, failok: bool = False) -> str:
         errorNotify(sys.exc_info()[2], e)
         return ""
 
+
 def allShowFiles(show: dict, banner: bool = False) -> list[str]:
     """get a list of all files associated with a show on the media server"""
     try:
@@ -44,6 +55,7 @@ def allShowFiles(show: dict, banner: bool = False) -> list[str]:
         errorNotify(sys.exc_info()[2], e)
         return []
 
+
 def cpRemoteFile(src: str, dest: str, banner: bool = False) -> bool:
     """copy a file on the media server"""
     try:
@@ -55,7 +67,6 @@ def cpRemoteFile(src: str, dest: str, banner: bool = False) -> bool:
         return False
 
 
-
 def remoteFileSize(fn: str, human: bool = False) -> int:
     """get the size of a file on the media server"""
     try:
@@ -63,21 +74,27 @@ def remoteFileSize(fn: str, human: bool = False) -> int:
         if res:
             return humanSize(int(res)) if human else int(res)
         else:
-                return -1
+            return -1
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
         return -1
 
+
 def remoteExists(fn: str, isdir: bool = False) -> bool:
     """check if a file exists on the media server"""
     try:
-        checkcmd = f'test -f "{fn}" && ls "{fn}"' if not isdir else f'test -d "{fn}" && ls "{fn}"'
+        checkcmd = (
+            f'test -f "{fn}" && ls "{fn}"'
+            if not isdir
+            else f'test -d "{fn}" && ls "{fn}"'
+        )
         res = remoteCommand(checkcmd, failok=True)
         # returns True if string is not empty (i.e. the 'ls' succeeded), False if string is empty (i.e. the 'ls' failed)
         return res != ""
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
         return False
+
 
 def remoteFinalFileName(src: str) -> str:
     """ensure that the remote final file name does not exist, adding a suffix if needed"""
@@ -104,6 +121,7 @@ def remoteFinalFileName(src: str) -> str:
         errorNotify(sys.exc_info()[2], e)
         return src
 
+
 def remoteSHA256(fn: str) -> str:
     """get the sha256 hash of a file on the media server"""
     try:
@@ -116,6 +134,7 @@ def remoteSHA256(fn: str) -> str:
         errorNotify(sys.exc_info()[2], e)
         return ""
 
+
 def remoteMkdir(dir: str) -> bool:
     """make a directory on the media server"""
     try:
@@ -126,9 +145,11 @@ def remoteMkdir(dir: str) -> bool:
         errorNotify(sys.exc_info()[2], e)
         return False
 
+
 def copyTVFiles(srcfiles: list[str], destdir: str, banner: bool = False) -> bool:
     """copy a list of files on the media server to a destination directory"""
     try:
+        verify_checksum = _cfg_bool("verifychecksum", default=True)
         if remoteExists(destdir, isdir=True):
             if banner:
                 print(f"Destination directory {destdir} already exists on media server")
@@ -146,8 +167,25 @@ def copyTVFiles(srcfiles: list[str], destdir: str, banner: bool = False) -> bool
                 destsize = remoteFileSize(destfn)
                 if srcsize != destsize:
                     if banner:
-                        print(f"Size mismatch after copying {src} to {destfn} on media server: {srcsize} != {destsize}")
+                        print(
+                            f"Size mismatch after copying {src} to {destfn} on media server: {srcsize} != {destsize}"
+                        )
                     return False
+                if verify_checksum:
+                    srcsha = remoteSHA256(src)
+                    destsha = remoteSHA256(destfn)
+                    if not srcsha or not destsha:
+                        if banner:
+                            print(
+                                f"Checksum unavailable after copying {src} to {destfn} on media server"
+                            )
+                        return False
+                    if srcsha != destsha:
+                        if banner:
+                            print(
+                                f"Checksum mismatch after copying {src} to {destfn} on media server"
+                            )
+                        return False
             return True
         return False
     except Exception as e:
@@ -160,7 +198,7 @@ def remoteWriteTextFile(destfn: str, content: str, banner: bool = False) -> bool
     try:
         mhost = tvhtokodi.cfg["sshhost"]
         muser = tvhtokodi.cfg["sshuser"]
-        mkeyfn = expandPath(f'~/.ssh/{tvhtokodi.cfg["keyfn"]}')
+        mkeyfn = expandPath(f"~/.ssh/{tvhtokodi.cfg['keyfn']}")
         ckwargs = {"key_filename": mkeyfn}
 
         if not remoteMkdir(str(Path(destfn).parent)):
