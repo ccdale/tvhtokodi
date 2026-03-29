@@ -21,6 +21,7 @@
 import logging
 import sys
 import threading
+from pathlib import Path
 from typing import Optional
 
 import tvhtokodi
@@ -28,7 +29,12 @@ from tvhtokodi import errorNotify
 from tvhtokodi.gtk_setup import Adw, Gio, GLib, Gtk
 from tvhtokodi.nfo import hmsDisplay, makeFilmNfo, makeProgNfo
 from tvhtokodi.recordings import tidyRecording
-from tvhtokodi.remotefiles import allShowFiles, copyTVFiles, remoteExists
+from tvhtokodi.remotefiles import (
+    allShowFiles,
+    copyTVFiles,
+    remoteExists,
+    remoteWriteTextFile,
+)
 from tvhtokodi.tvh import allRecordings, deleteRecording
 
 log = logging.getLogger(tvhtokodi.appname)
@@ -458,6 +464,12 @@ class RecordingsWindow(Adw.ApplicationWindow):
             copied = copyTVFiles(recording["allfiles"], destination, banner=True)
             if not copied:
                 raise RuntimeError("Remote copy failed")
+
+            # Write generated metadata into destination as a Kodi .nfo file.
+            nfo_remote = str(Path(destination) / f"{Path(recording['filename']).stem}.nfo")
+            nfo_written = remoteWriteTextFile(nfo_remote, recording["nfo"], banner=True)
+            if not nfo_written:
+                raise RuntimeError(f"Failed to write NFO file: {nfo_remote}")
 
             # Request TVHeadend to remove the DVR entry and source files.
             deleteRecording(recording["uuid"])

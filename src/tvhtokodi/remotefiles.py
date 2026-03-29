@@ -1,4 +1,5 @@
 import sys
+from io import StringIO
 from pathlib import Path
 
 from fabric import Connection
@@ -149,6 +150,29 @@ def copyTVFiles(srcfiles: list[str], destdir: str, banner: bool = False) -> bool
                     return False
             return True
         return False
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
+        return False
+
+
+def remoteWriteTextFile(destfn: str, content: str, banner: bool = False) -> bool:
+    """write text content to a file on the media server via Fabric/SSH"""
+    try:
+        mhost = tvhtokodi.cfg["sshhost"]
+        muser = tvhtokodi.cfg["sshuser"]
+        mkeyfn = expandPath(f'~/.ssh/{tvhtokodi.cfg["keyfn"]}')
+        ckwargs = {"key_filename": mkeyfn}
+
+        if not remoteMkdir(str(Path(destfn).parent)):
+            return False
+
+        if banner:
+            print(f"Writing remote text file {destfn} on {mhost}", flush=True)
+
+        with Connection(host=mhost, user=muser, connect_kwargs=ckwargs) as c:
+            c.put(StringIO(content), destfn)
+
+        return remoteExists(destfn)
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
         return False
