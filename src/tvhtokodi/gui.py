@@ -204,9 +204,13 @@ class RecordingsWindow(Adw.ApplicationWindow):
         self.all_recordings: list[dict] = []
         self.selected_row: Optional[Gtk.ListBoxRow] = None
         self.loading_spinner: Optional[Gtk.Spinner] = None
+        self.paned: Optional[Gtk.Paned] = None
 
         # Build UI
         self._build_ui()
+
+        # Set paned position after window is realized
+        self.connect("realize", self._on_window_realize)
 
         # Load recordings in background
         threading.Thread(target=self._load_recordings, daemon=True).start()
@@ -233,12 +237,12 @@ class RecordingsWindow(Adw.ApplicationWindow):
 
         header_bar.pack_end(action_box)
 
-        # Main content - split pane (50/50 split: equal panes)
-        paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        paned.set_hexpand(True)
-        paned.set_vexpand(True)
+        # Main content - split pane (60/40 split: left pane wider)
+        self.paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        self.paned.set_hexpand(True)
+        self.paned.set_vexpand(True)
 
-        # Left: Recordings list (50%)
+        # Left: Recordings list (60%)
         left_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         left_box.set_hexpand(True)
 
@@ -261,21 +265,18 @@ class RecordingsWindow(Adw.ApplicationWindow):
         scrolled_left.set_hexpand(True)
         left_box.append(scrolled_left)
 
-        paned.set_start_child(left_box)
-        paned.set_shrink_start_child(False)
+        self.paned.set_start_child(left_box)
+        self.paned.set_shrink_start_child(False)
 
-        # Right: Recording details (50%)
+        # Right: Recording details (40%)
         self.detail_pane = RecordingDetailPane()
-        paned.set_end_child(self.detail_pane)
-        paned.set_shrink_end_child(False)
-
-        # Set position to 50% of initial window width
-        paned.connect("map", self._on_paned_map)
+        self.paned.set_end_child(self.detail_pane)
+        self.paned.set_shrink_end_child(False)
 
         # Layout with header and content
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         main_box.append(header_bar)
-        main_box.append(paned)
+        main_box.append(self.paned)
 
         self.set_content(main_box)
 
@@ -323,14 +324,24 @@ class RecordingsWindow(Adw.ApplicationWindow):
             self.detail_pane.set_recording(recording)
             self.move_button.set_sensitive(True)
 
-    def _on_paned_map(self, paned: Gtk.Paned) -> None:
-        """Set the paned position to 50/50 split when window is mapped."""
+    def _on_window_realize(self, window: Adw.ApplicationWindow) -> None:
+        """Set the paned position after window is realized."""
+        # Defer position setting to idle so the window has its full size
+        GLib.idle_add(self._set_paned_position)
+
+    def _set_paned_position(self) -> bool:
+        """Set the paned divider to 60/40 split (left pane wider)."""
+        if self.paned is None:
+            return False
+
         # Get the paned widget's allocated width
-        width = paned.get_allocated_width()
-        if width > 0:
-            # Position at 50% (left and right panes get equal space)
-            position = int(width * 0.5)
-            paned.set_position(position)
+        width = self.paned.get_allocated_width()
+        if width > 1:
+            # Position at 60% (left pane gets 60%, right pane gets 40%)
+            position = int(width * 0.6)
+            self.paned.set_position(position)
+            return False  # Remove this idle callback
+        return True  # Try again later if width not yet allocated
 
     def _on_search_changed(self, search_entry: Gtk.SearchEntry) -> None:
         """Filter recordings by search text."""
