@@ -85,7 +85,7 @@ def makeXmlAtts(attrs):
     try:
         satts = ""
         for attr in attrs:
-            satts += attr + "=" + attrs[attr]
+            satts += f'{str(attr)}="{str(attrs[attr])}"'
         return satts
     except Exception as e:
         errorRaise(sys.exc_info()[2], e)
@@ -102,7 +102,7 @@ def makeXmlTag(tag, content, attrs=None, oneline=False, newline=True):
             if attrs is not None:
                 xml += makeXmlAtts(attrs)
             xml += f">{filler}"
-            xml += content + filler
+            xml += str(content) + filler
             xml += f"</{tag}>"
         if newline and oneline:
             xml += "\n"
