@@ -120,7 +120,8 @@ class RecordingDetailPane(Gtk.Box):
         self.category_combo: Optional[Gtk.ComboBoxText] = None
         self.description_label: Optional[Gtk.Label] = None
         self.season_episode_label: Optional[Gtk.Label] = None
-        self.filename_label: Optional[Gtk.Label] = None
+        self.source_filename_label: Optional[Gtk.Label] = None
+        self.destination_filename_label: Optional[Gtk.Label] = None
 
         # Create scrolled window for content
         scrolled = Gtk.ScrolledWindow()
@@ -136,7 +137,7 @@ class RecordingDetailPane(Gtk.Box):
         self.title_label = Gtk.Label(label="Select a recording")
         self.title_label.set_wrap(True)
         self.title_label.set_markup(
-            "<b><span size=\"large\">Select a recording</span></b>"
+            '<b><span size="large">Select a recording</span></b>'
         )
         content_box.append(self.title_label)
 
@@ -160,13 +161,31 @@ class RecordingDetailPane(Gtk.Box):
         self.description_label.set_valign(Gtk.Align.START)
         content_box.append(self.description_label)
 
-        # Filename
-        self.filename_label = Gtk.Label()
-        self.filename_label.set_wrap(True)
-        self.filename_label.set_selectable(True)
-        self.filename_label.add_css_class("monospace")
-        self.filename_label.add_css_class("dim-label")
-        content_box.append(self.filename_label)
+        # Source filename
+        source_heading = Gtk.Label(label="Source file:")
+        source_heading.set_halign(Gtk.Align.START)
+        source_heading.add_css_class("dim-label")
+        content_box.append(source_heading)
+
+        self.source_filename_label = Gtk.Label()
+        self.source_filename_label.set_wrap(True)
+        self.source_filename_label.set_selectable(True)
+        self.source_filename_label.add_css_class("monospace")
+        self.source_filename_label.add_css_class("dim-label")
+        content_box.append(self.source_filename_label)
+
+        # Destination filename preview
+        destination_heading = Gtk.Label(label="Destination file (preview):")
+        destination_heading.set_halign(Gtk.Align.START)
+        destination_heading.add_css_class("dim-label")
+        content_box.append(destination_heading)
+
+        self.destination_filename_label = Gtk.Label()
+        self.destination_filename_label.set_wrap(True)
+        self.destination_filename_label.set_selectable(True)
+        self.destination_filename_label.add_css_class("monospace")
+        self.destination_filename_label.add_css_class("dim-label")
+        content_box.append(self.destination_filename_label)
 
         scrolled.set_child(content_box)
         self.append(scrolled)
@@ -193,9 +212,7 @@ class RecordingDetailPane(Gtk.Box):
 
         title = recording.get("title", "Unknown")
         escaped_title = escape_markup(title)
-        self.title_label.set_markup(
-            f"<b><span size=\"large\">{escaped_title}</span></b>"
-        )
+        self.title_label.set_markup(f'<b><span size="large">{escaped_title}</span></b>')
 
         channel = recording.get("channelname", "Unknown")
         date = recording.get("ctimestart", "")
@@ -215,7 +232,10 @@ class RecordingDetailPane(Gtk.Box):
         self.description_label.set_text(description)
 
         filename = recording.get("filename", "")
-        self.filename_label.set_text(filename)
+        self.source_filename_label.set_text(filename)
+        self.destination_filename_label.set_text(
+            "Select category to preview destination"
+        )
 
         # Auto-suggest category based on series vs film heuristics
         if season and episode:
@@ -226,6 +246,11 @@ class RecordingDetailPane(Gtk.Box):
     def get_selected_category(self) -> str:
         """Get the currently selected category."""
         return self.category_combo.get_active_id()
+
+    def set_destination_preview(self, destination_file: str) -> None:
+        """Update destination filename preview in detail pane."""
+        if self.destination_filename_label is not None:
+            self.destination_filename_label.set_text(destination_file)
 
 
 class RecordingsWindow(Adw.ApplicationWindow):
@@ -322,6 +347,7 @@ class RecordingsWindow(Adw.ApplicationWindow):
 
         # Right: Recording details (40%)
         self.detail_pane = RecordingDetailPane()
+        self.detail_pane.category_combo.connect("changed", self._on_category_changed)
         self.paned.set_end_child(self.detail_pane)
         self.paned.set_shrink_end_child(False)
 
@@ -374,7 +400,24 @@ class RecordingsWindow(Adw.ApplicationWindow):
             self.selected_row = row
             recording = self.all_recordings[idx]
             self.detail_pane.set_recording(recording)
+            self._update_destination_preview()
             self.move_button.set_sensitive(True)
+
+    def _on_category_changed(self, combo: Gtk.ComboBoxText) -> None:
+        """Update destination preview when media category changes."""
+        self._update_destination_preview()
+
+    def _update_destination_preview(self) -> None:
+        """Refresh the destination filename preview for current selection/category."""
+        if self.detail_pane.recording is None:
+            return
+        category = self.detail_pane.get_selected_category()
+        destination_dir = self._compute_destination(
+            self.detail_pane.recording, category
+        )
+        src_basename = Path(self.detail_pane.recording.get("filename", "")).name
+        destination_file = str(Path(destination_dir) / src_basename)
+        self.detail_pane.set_destination_preview(destination_file)
 
     def _on_window_realize(self, window: Adw.ApplicationWindow) -> None:
         """Set the paned position after window is realized."""
