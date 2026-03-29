@@ -135,7 +135,9 @@ class RecordingDetailPane(Gtk.Box):
         # Title
         self.title_label = Gtk.Label(label="Select a recording")
         self.title_label.set_wrap(True)
-        self.title_label.set_markup("<b><large>Select a recording</large></b>")
+        self.title_label.set_markup(
+            "<b><span size=\"large\">Select a recording</span></b>"
+        )
         content_box.append(self.title_label)
 
         # Channel and date
@@ -191,7 +193,9 @@ class RecordingDetailPane(Gtk.Box):
 
         title = recording.get("title", "Unknown")
         escaped_title = escape_markup(title)
-        self.title_label.set_markup(f"<b><large>{escaped_title}</large></b>")
+        self.title_label.set_markup(
+            f"<b><span size=\"large\">{escaped_title}</span></b>"
+        )
 
         channel = recording.get("channelname", "Unknown")
         date = recording.get("ctimestart", "")
@@ -489,7 +493,9 @@ class RecordingsWindow(Adw.ApplicationWindow):
                 recording["allfiles"] = allShowFiles(recording)
                 log.info(f"Associated files: {recording['allfiles']}")
                 if not recording["allfiles"]:
-                    raise RuntimeError("No source files found for the selected recording")
+                    raise RuntimeError(
+                        "No source files found for the selected recording"
+                    )
 
                 # Copy files on the media server via Fabric/SSH (includes mkdir -p).
                 copied = copyTVFiles(recording["allfiles"], destination, banner=True)
