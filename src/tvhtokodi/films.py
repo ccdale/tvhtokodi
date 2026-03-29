@@ -8,6 +8,7 @@ import tvhtokodi
 from tvhtokodi import errorExit, errorNotify, errorRaise
 from tvhtokodi.files import sendFileTo
 from tvhtokodi.nfo import hmsDisplay
+from tvhtokodi.remotefiles import allShowFiles
 
 
 def listItems(items: list, xkey: str = "disp_title") -> None:
@@ -45,7 +46,7 @@ def findFilms(recs: list) -> list:
         errorRaise(sys.exc_info()[2], e)
 
 
-def displayFilms(recs: list) -> None:
+def displayFilms(recs: list) -> list[dict]:
     try:
         films = findFilms(recs)
         if not films:
@@ -53,6 +54,7 @@ def displayFilms(recs: list) -> None:
         films.sort(key=lambda x: x.get("copyright_year", 0))
         filmdir = tvhtokodi.cfg["filmdir"]
         for film in films:
+            film["allfiles"] = allShowFiles(film)
             # print(f"{film=}")
             title = film.get("disp_title", "Unknown Title")
             initial = titleInitial(title)
@@ -62,8 +64,11 @@ def displayFilms(recs: list) -> None:
             film["destfn"] = f"{os.path.basename(film['filename'])}"
             print(f"film destfn: {film['destfn']}")
             print(f"Film Source: {film['filename']}")
+            for filmother in film["allfiles"]:
+                print(f"           {filmother}")
             # sendNextFile([film])
             print()
+        return films
     except Exception as e:
         errorExit(sys.exc_info()[2], e)
 

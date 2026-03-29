@@ -96,3 +96,18 @@ def dirFileList(path: str) -> list:
             ]
     except Exception as e:
         errorNotify(sys.exc_info()[2], e)
+
+def fileSize(fn):
+    try:
+        return os.path.getsize(fn)
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
+        return -1
+
+def humanSize(sizebytes):
+    """Convert bytes to human readable format."""
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
+        if sizebytes < 1024:
+            return f"{sizebytes:.2f} {unit}"
+        sizebytes /= 1024
+    return f"{sizebytes:.2f} PB"

@@ -17,6 +17,7 @@
 #     along with tvhtokodi.  If not, see <http://www.gnu.org/licenses/>.
 #
 import json
+import os
 import subprocess
 import sys
 import types
@@ -57,7 +58,8 @@ def readConfig() -> None:
     try:
         global cfg
         with open(str(configfn), "r") as ifn:
-            cfg = json.load(ifn)
+            return json.load(ifn)
+            # print(f"config loaded: {cfg}")
     except Exception as e:
         errorExit(sys.exc_info()[2], e)
 
@@ -124,9 +126,15 @@ def getAppName() -> str:
     except Exception as e:
         errorExit(sys.exc_info()[2], e)
 
+def expandPath(path):
+    try:
+        return os.path.abspath(os.path.expanduser(path))
+    except Exception as e:
+        errorRaise(sys.exc_info()[2], e)
+
 version = getVersion()
 __version__ = version
 appname = getAppName()
 __appname__ = appname
 configfn = Path.home().joinpath(".config", f"{appname}.json")
-cfg = {}
+cfg = readConfig()

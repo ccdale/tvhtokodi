@@ -34,15 +34,19 @@ class TVHError(Exception):
 def sendToTvh(route: str, data: dict = None) -> dict:
     """Send a request to tvheadend"""
     try:
+        # print(f"current config: {tvhtokodi.cfg}", flush=True)
         auth = (tvhtokodi.cfg["tvhuser"], tvhtokodi.cfg["tvhpass"])
         url = f"http://{tvhtokodi.cfg['tvhipaddr']}/api/{route}"
+        # print(f"Requesting {url} with params {data}", flush=True)
         r = requests.get(url, params=data, auth=auth)
+        # print(f"Response: {r.status_code} {r.text}", flush=True)
         if r.status_code != 200:
             raise TVHError(f"error communicating with tvh: {r}")
         return r.json()
-    except Exception:
+    except Exception as e:
+        errorNotify(sys.exc_info()[2], e)
         try:
-            print("Error decoding json from tvh, trying again")
+            print("Error decoding json from tvh, trying again", flush=True)
             txt = r.text.replace(chr(25), " ")
             return json.loads(txt)
         except Exception as xe:
