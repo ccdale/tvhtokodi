@@ -655,7 +655,9 @@ class RecordingsWindow(Adw.ApplicationWindow):
             self.move_progress_bar.set_pulse_step(0.08)
             self.move_progress_bar.pulse()
         if self.move_progress_pulse_id is None:
-            self.move_progress_pulse_id = GLib.timeout_add(120, self._pulse_move_progress)
+            self.move_progress_pulse_id = GLib.timeout_add(
+                120, self._pulse_move_progress
+            )
         return False
 
     def _pulse_move_progress(self) -> bool:
