@@ -28,15 +28,15 @@ from tvhtokodi import errorNotify
 from tvhtokodi.gtk_setup import Adw, Gio, GLib, Gtk
 from tvhtokodi.nfo import hmsDisplay, makeFilmNfo, makeProgNfo
 from tvhtokodi.recordings import tidyRecording
-from tvhtokodi.remotefiles import allShowFiles
-from tvhtokodi.tvh import allRecordings
+from tvhtokodi.remotefiles import allShowFiles, copyTVFiles, remoteExists
+from tvhtokodi.tvh import allRecordings, deleteRecording
 
 log = logging.getLogger(tvhtokodi.appname)
 
 
 def escape_markup(text: str) -> str:
     """Escape special HTML/XML characters for use in GTK markup.
-    
+
     Escapes: &, <, >, ", '
     """
     if not text:
@@ -448,19 +448,49 @@ class RecordingsWindow(Adw.ApplicationWindow):
                 f"Moving {recording['title']} to {destination} category={category}"
             )
 
-            # Get all associated files (srt, nfo, etc)
+            # Get all associated files (srt, nfo, txt, etc) from remote host.
             recording["allfiles"] = allShowFiles(recording)
             log.info(f"Associated files: {recording['allfiles']}")
+            if not recording["allfiles"]:
+                raise RuntimeError("No source files found for the selected recording")
 
-            # TODO: Wire copy and delete operations here
-            # For now, just show success message
+            # Copy files on the media server via Fabric/SSH (includes mkdir -p).
+            copied = copyTVFiles(recording["allfiles"], destination, banner=True)
+            if not copied:
+                raise RuntimeError("Remote copy failed")
+
+            # Request TVHeadend to remove the DVR entry and source files.
+            deleteRecording(recording["uuid"])
+
+            # Verify whether source files still exist after deletion request.
+            remaining = [fn for fn in recording["allfiles"] if remoteExists(fn)]
             GLib.idle_add(
-                lambda: self._show_success(f"Ready to move {recording['title']}")
+                self._on_move_success,
+                recording.get("title", "Unknown"),
+                len(remaining),
             )
         except Exception as e:
             error_msg = f"Move failed: {str(e)}"
             errorNotify(sys.exc_info()[2], e)
-            GLib.idle_add(lambda msg=error_msg: self._show_error(msg))
+            GLib.idle_add(self._on_move_failure, error_msg)
+
+    def _on_move_success(self, title: str, remaining_count: int) -> bool:
+        """Handle successful copy and post-delete status in the UI thread."""
+        if remaining_count == 0:
+            self._show_success(f"Moved '{title}' and deleted from TVHeadend")
+        else:
+            self._show_error(
+                f"Moved '{title}', but {remaining_count} source file(s) still exist"
+            )
+        self.move_button.set_sensitive(False)
+        threading.Thread(target=self._load_recordings, daemon=True).start()
+        return False
+
+    def _on_move_failure(self, message: str) -> bool:
+        """Handle move failures in the UI thread."""
+        self._show_error(message)
+        self.move_button.set_sensitive(True)
+        return False
 
     def _compute_destination(self, recording: dict, category: str) -> str:
         """Compute the Kodi destination path based on category."""
