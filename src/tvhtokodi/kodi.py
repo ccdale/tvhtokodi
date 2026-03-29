@@ -20,7 +20,15 @@ class KodiError(Exception):
 def kodi_jsonrpc(method: str, params: Optional[dict] = None) -> dict:
     """Call the Kodi JSON-RPC API and return the decoded payload."""
     try:
-        url = tvhtokodi.cfg.get("kodi_jsonrpc_url", "http://127.0.0.1:8080/jsonrpc")
+        kodi_host = tvhtokodi.cfg.get("kodiipaddr") or tvhtokodi.cfg.get("sshhost")
+        kodi_port = tvhtokodi.cfg.get("kodiport", 8080)
+        url = tvhtokodi.cfg.get("kodi_jsonrpc_url")
+        if not url:
+            if not kodi_host:
+                raise KodiError(
+                    "Missing Kodi host in config (set 'kodiipaddr' or 'kodi_jsonrpc_url')"
+                )
+            url = f"http://{kodi_host}:{kodi_port}/jsonrpc"
         user = tvhtokodi.cfg.get("kodiuser")
         password = tvhtokodi.cfg.get("kodipass")
         auth = (user, password) if user and password else None
