@@ -27,7 +27,12 @@ from typing import Optional
 import tvhtokodi
 from tvhtokodi import errorNotify
 from tvhtokodi.gtk_setup import Adw, Gio, GLib, Gtk
-from tvhtokodi.kodi import kodi_scan_path_for_category, scan_kodi_path
+from tvhtokodi.kodi import (
+    kodi_jsonrpc_url,
+    kodi_scan_path_for_category,
+    scan_kodi_path,
+    test_kodi_connection,
+)
 from tvhtokodi.nfo import hmsDisplay, makeFilmNfo, makeProgNfo
 from tvhtokodi.recordings import tidyRecording
 from tvhtokodi.remotefiles import (
@@ -230,12 +235,17 @@ class RecordingsWindow(Adw.ApplicationWindow):
         self.selected_row: Optional[Gtk.ListBoxRow] = None
         self.loading_spinner: Optional[Gtk.Spinner] = None
         self.paned: Optional[Gtk.Paned] = None
+        self.kodi_status_label: Optional[Gtk.Label] = None
+        self.kodi_test_button: Optional[Gtk.Button] = None
 
         # Build UI
         self._build_ui()
 
         # Set paned position after window is realized
         self.connect("realize", self._on_window_realize)
+
+        # Run a Kodi connection test on startup.
+        self._start_kodi_connection_test()
 
         # Load recordings in background
         threading.Thread(target=self._load_recordings, daemon=True).start()
@@ -260,7 +270,19 @@ class RecordingsWindow(Adw.ApplicationWindow):
         refresh_button.connect("clicked", self._on_refresh_clicked)
         action_box.append(refresh_button)
 
+        self.kodi_test_button = Gtk.Button(label="Test Connection")
+        self.kodi_test_button.connect("clicked", self._on_test_connection_clicked)
+        action_box.append(self.kodi_test_button)
+
         header_bar.pack_end(action_box)
+
+        self.kodi_status_label = Gtk.Label(
+            label="Kodi: checking connection...",
+            xalign=0,
+        )
+        self.kodi_status_label.add_css_class("dim-label")
+        self.kodi_status_label.set_ellipsize(3)  # PANGO_ELLIPSIZE_END
+        header_bar.pack_start(self.kodi_status_label)
 
         # Main content - split pane (60/40 split: left pane wider)
         self.paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
@@ -521,6 +543,41 @@ class RecordingsWindow(Adw.ApplicationWindow):
         """Handle move failures in the UI thread."""
         self._show_error(message)
         self.move_button.set_sensitive(True)
+        return False
+
+    def _on_test_connection_clicked(self, button: Gtk.Button) -> None:
+        """Handle click on Kodi connection test button."""
+        self._start_kodi_connection_test()
+
+    def _start_kodi_connection_test(self) -> None:
+        """Start a non-blocking Kodi connection test."""
+        if self.kodi_test_button is not None:
+            self.kodi_test_button.set_sensitive(False)
+        if self.kodi_status_label is not None:
+            self.kodi_status_label.set_text("Kodi: checking connection...")
+        threading.Thread(target=self._run_kodi_connection_test, daemon=True).start()
+
+    def _run_kodi_connection_test(self) -> None:
+        """Run Kodi connection test in a background thread."""
+        endpoint = "unknown endpoint"
+        try:
+            endpoint = kodi_jsonrpc_url()
+        except Exception:
+            pass
+
+        ok, detail = test_kodi_connection()
+        if ok:
+            status = f"Kodi: connected - {detail} @ {endpoint}"
+        else:
+            status = f"Kodi: disconnected - {detail} @ {endpoint}"
+        GLib.idle_add(self._set_kodi_connection_status, status)
+
+    def _set_kodi_connection_status(self, status: str) -> bool:
+        """Update Kodi connection status in UI thread."""
+        if self.kodi_status_label is not None:
+            self.kodi_status_label.set_text(status)
+        if self.kodi_test_button is not None:
+            self.kodi_test_button.set_sensitive(True)
         return False
 
     def _compute_destination(self, recording: dict, category: str) -> str:
