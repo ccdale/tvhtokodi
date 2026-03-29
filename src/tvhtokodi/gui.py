@@ -233,12 +233,12 @@ class RecordingsWindow(Adw.ApplicationWindow):
 
         header_bar.pack_end(action_box)
 
-        # Main content - split pane (70/30 split: left pane larger)
+        # Main content - split pane (50/50 split: equal panes)
         paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
         paned.set_hexpand(True)
         paned.set_vexpand(True)
 
-        # Left: Recordings list (70%)
+        # Left: Recordings list (50%)
         left_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         left_box.set_hexpand(True)
 
@@ -264,12 +264,12 @@ class RecordingsWindow(Adw.ApplicationWindow):
         paned.set_start_child(left_box)
         paned.set_shrink_start_child(False)
 
-        # Right: Recording details (30%)
+        # Right: Recording details (50%)
         self.detail_pane = RecordingDetailPane()
         paned.set_end_child(self.detail_pane)
         paned.set_shrink_end_child(False)
 
-        # Set position to 70% of initial window width (700px out of 1000px)
+        # Set position to 50% of initial window width
         paned.connect("map", self._on_paned_map)
 
         # Layout with header and content
@@ -324,12 +324,12 @@ class RecordingsWindow(Adw.ApplicationWindow):
             self.move_button.set_sensitive(True)
 
     def _on_paned_map(self, paned: Gtk.Paned) -> None:
-        """Set the paned position to 70/30 split when window is mapped."""
+        """Set the paned position to 50/50 split when window is mapped."""
         # Get the paned widget's allocated width
         width = paned.get_allocated_width()
         if width > 0:
-            # Position at 70% (left pane gets 70%, right pane gets 30%)
-            position = int(width * 0.7)
+            # Position at 50% (left and right panes get equal space)
+            position = int(width * 0.5)
             paned.set_position(position)
 
     def _on_search_changed(self, search_entry: Gtk.SearchEntry) -> None:
