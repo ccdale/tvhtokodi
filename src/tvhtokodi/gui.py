@@ -267,6 +267,9 @@ class RecordingsWindow(Adw.ApplicationWindow):
         self.paned: Optional[Gtk.Paned] = None
         self.kodi_status_label: Optional[Gtk.Label] = None
         self.kodi_test_button: Optional[Gtk.Button] = None
+        self.move_status_label: Optional[Gtk.Label] = None
+        self.move_progress_bar: Optional[Gtk.ProgressBar] = None
+        self.move_progress_pulse_id: Optional[int] = None
 
         # Build UI
         self._build_ui()
@@ -352,8 +355,23 @@ class RecordingsWindow(Adw.ApplicationWindow):
         self.paned.set_shrink_end_child(False)
 
         # Layout with header and content
+        move_status_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        move_status_box.set_margin_top(6)
+        move_status_box.set_margin_start(8)
+        move_status_box.set_margin_end(8)
+
+        self.move_status_label = Gtk.Label(label="Move status: idle", xalign=0)
+        self.move_status_label.add_css_class("dim-label")
+        move_status_box.append(self.move_status_label)
+
+        self.move_progress_bar = Gtk.ProgressBar()
+        self.move_progress_bar.set_show_text(False)
+        self.move_progress_bar.set_fraction(0.0)
+        move_status_box.append(self.move_progress_bar)
+
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         main_box.append(header_bar)
+        main_box.append(move_status_box)
         main_box.append(self.paned)
 
         self.set_content(main_box)
@@ -493,6 +511,12 @@ class RecordingsWindow(Adw.ApplicationWindow):
             )
             return
 
+        GLib.idle_add(
+            self._set_move_progress,
+            "Move status: preparing job",
+            0.05,
+        )
+
         # Start move in background thread
         threading.Thread(
             target=self._execute_move, args=(recording, category), daemon=True
@@ -505,6 +529,11 @@ class RecordingsWindow(Adw.ApplicationWindow):
         """Execute the move operation (background thread)."""
         with MOVE_LOCK:
             try:
+                GLib.idle_add(
+                    self._set_move_progress,
+                    "Move status: computing destination and metadata",
+                    0.10,
+                )
                 # Enrich recording with destination path and metadata
                 destination = self._compute_destination(recording, category)
                 recording["destination"] = destination
@@ -532,6 +561,11 @@ class RecordingsWindow(Adw.ApplicationWindow):
                     f"Moving {recording['title']} to {destination} category={category}"
                 )
 
+                GLib.idle_add(
+                    self._set_move_progress,
+                    "Move status: discovering source files",
+                    0.20,
+                )
                 # Get all associated files (srt, nfo, txt, etc) from remote host.
                 recording["allfiles"] = allShowFiles(recording)
                 log.info(f"Associated files: {recording['allfiles']}")
@@ -540,11 +574,20 @@ class RecordingsWindow(Adw.ApplicationWindow):
                         "No source files found for the selected recording"
                     )
 
+                GLib.idle_add(
+                    self._set_move_progress_pulse,
+                    "Move status: copying and checksumming files",
+                )
                 # Copy files on the media server via Fabric/SSH (includes mkdir -p).
                 copied = copyTVFiles(recording["allfiles"], destination, banner=True)
                 if not copied:
                     raise RuntimeError("Remote copy failed")
 
+                GLib.idle_add(
+                    self._set_move_progress,
+                    "Move status: writing NFO metadata",
+                    0.60,
+                )
                 # Write generated metadata into destination as a Kodi .nfo file.
                 nfo_remote = str(
                     Path(destination) / f"{Path(recording['filename']).stem}.nfo"
@@ -555,9 +598,19 @@ class RecordingsWindow(Adw.ApplicationWindow):
                 if not nfo_written:
                     raise RuntimeError(f"Failed to write NFO file: {nfo_remote}")
 
+                GLib.idle_add(
+                    self._set_move_progress,
+                    "Move status: deleting TVHeadend recording",
+                    0.75,
+                )
                 # Request TVHeadend to remove the DVR entry and source files.
                 deleteRecording(recording["uuid"])
 
+                GLib.idle_add(
+                    self._set_move_progress,
+                    "Move status: triggering Kodi rescan",
+                    0.85,
+                )
                 # Trigger Kodi scan for the category root path.
                 scan_warning = ""
                 try:
@@ -567,6 +620,11 @@ class RecordingsWindow(Adw.ApplicationWindow):
                     scan_warning = f"Kodi scan warning: {scan_exc}"
                     log.warning(scan_warning)
 
+                GLib.idle_add(
+                    self._set_move_progress,
+                    "Move status: verifying source cleanup",
+                    0.95,
+                )
                 # Verify whether source files still exist after deletion request.
                 remaining = [fn for fn in recording["allfiles"] if remoteExists(fn)]
                 GLib.idle_add(
@@ -580,10 +638,53 @@ class RecordingsWindow(Adw.ApplicationWindow):
                 errorNotify(sys.exc_info()[2], e)
                 GLib.idle_add(self._on_move_failure, error_msg)
 
+    def _set_move_progress(self, status: str, fraction: float) -> bool:
+        """Update move progress widgets from the UI thread."""
+        self._stop_move_progress_pulse()
+        if self.move_status_label is not None:
+            self.move_status_label.set_text(status)
+        if self.move_progress_bar is not None:
+            self.move_progress_bar.set_fraction(max(0.0, min(1.0, fraction)))
+        return False
+
+    def _set_move_progress_pulse(self, status: str) -> bool:
+        """Show indeterminate pulse progress for long-running copy/checksum stage."""
+        if self.move_status_label is not None:
+            self.move_status_label.set_text(status)
+        if self.move_progress_bar is not None:
+            self.move_progress_bar.set_pulse_step(0.08)
+            self.move_progress_bar.pulse()
+        if self.move_progress_pulse_id is None:
+            self.move_progress_pulse_id = GLib.timeout_add(120, self._pulse_move_progress)
+        return False
+
+    def _pulse_move_progress(self) -> bool:
+        """Advance the move progress pulse animation while copy/checksum is running."""
+        if self.move_progress_bar is None:
+            return False
+        self.move_progress_bar.pulse()
+        return True
+
+    def _stop_move_progress_pulse(self) -> None:
+        """Stop any active indeterminate pulse loop."""
+        if self.move_progress_pulse_id is not None:
+            GLib.source_remove(self.move_progress_pulse_id)
+            self.move_progress_pulse_id = None
+
+    def _reset_move_progress(self) -> bool:
+        """Return move progress widgets to idle state."""
+        self._stop_move_progress_pulse()
+        if self.move_status_label is not None:
+            self.move_status_label.set_text("Move status: idle")
+        if self.move_progress_bar is not None:
+            self.move_progress_bar.set_fraction(0.0)
+        return False
+
     def _on_move_success(
         self, title: str, remaining_count: int, scan_warning: str = ""
     ) -> bool:
         """Handle successful copy and post-delete status in the UI thread."""
+        self._set_move_progress("Move status: completed", 1.0)
         if remaining_count == 0 and not scan_warning:
             self._show_success(
                 f"Moved '{title}', deleted from TVHeadend, and triggered Kodi scan"
@@ -596,12 +697,15 @@ class RecordingsWindow(Adw.ApplicationWindow):
             )
         self.move_button.set_sensitive(False)
         threading.Thread(target=self._load_recordings, daemon=True).start()
+        GLib.timeout_add(1500, self._reset_move_progress)
         return False
 
     def _on_move_failure(self, message: str) -> bool:
         """Handle move failures in the UI thread."""
+        self._set_move_progress("Move status: failed", 1.0)
         self._show_error(message)
         self.move_button.set_sensitive(True)
+        GLib.timeout_add(1500, self._reset_move_progress)
         return False
 
     def _on_test_connection_clicked(self, button: Gtk.Button) -> None:
