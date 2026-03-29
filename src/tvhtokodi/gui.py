@@ -16,86 +16,494 @@
 #     You should have received a copy of the GNU General Public License
 #     along with tvhtokodi.  If not, see <http://www.gnu.org/licenses/>.
 #
-"""GUI module for tvhtokodi"""
+"""GTK4 GUI for tvhtokodi - Recording browser and Kodi media organizer."""
 
-import tkinter as tk
-from tkinter import ttk
+import logging
+import sys
+import threading
+from typing import Optional
 
-from tvhtokodi import appname, version
-from tvhtokodi.recordings import recordedTitles
+import tvhtokodi
+from tvhtokodi import errorNotify
+from tvhtokodi.gtk_setup import Adw, Gio, GLib, Gtk
+from tvhtokodi.nfo import hmsDisplay, makeFilmNfo, makeProgNfo
+from tvhtokodi.recordings import tidyRecording
+from tvhtokodi.remotefiles import allShowFiles
+from tvhtokodi.tvh import allRecordings
+
+log = logging.getLogger(tvhtokodi.appname)
 
 
-class TitleBrowser(tk.Tk):
-    """Main window for browsing recorded titles."""
+class RecordingRow(Gtk.Box):
+    """A single recording row showing title, duration, and metadata."""
+
+    def __init__(self, recording: dict):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        self.set_margin_top(8)
+        self.set_margin_bottom(8)
+        self.set_margin_start(12)
+        self.set_margin_end(12)
+
+        self.recording = recording
+
+        # Title
+        title_label = Gtk.Label()
+        title_label.set_markup(f"<b>{recording.get('title', 'Unknown')}</b>")
+        title_label.set_halign(Gtk.Align.START)
+        self.append(title_label)
+
+        # Subtitle and duration
+        subtitle = recording.get("subtitle", "")
+        duration_str = hmsDisplay(recording.get("duration", 0))
+        info_text = f"{subtitle} • {duration_str}" if subtitle else duration_str
+        info_label = Gtk.Label(label=info_text)
+        info_label.set_halign(Gtk.Align.START)
+        info_label.add_css_class("dim-label")
+        info_label.set_wrap(True)
+        self.append(info_label)
+
+        # Description (truncated)
+        description = recording.get("disp_description", "")
+        if description and len(description) > 100:
+            description = description[:100] + "…"
+        if description:
+            desc_label = Gtk.Label(label=description)
+            desc_label.set_halign(Gtk.Align.START)
+            desc_label.set_wrap(True)
+            desc_label.add_css_class("dim-label")
+            self.append(desc_label)
+
+
+class RecordingDetailPane(Gtk.Box):
+    """Detail pane showing full recording info and category selector."""
 
     def __init__(self):
-        super().__init__()
-        
-        # Set window title
-        self.title(f"{appname} v{version}")
-        
-        # Set window size
-        self.geometry("600x400")
-        
-        # Create main frame
-        main_frame = ttk.Frame(self, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        
-        # Configure grid weights
-        self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(0, weight=1)
-        
-        # Create label
-        label = ttk.Label(main_frame, text="Recorded Titles:")
-        label.grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
-        
-        # Create listbox with scrollbar
-        listbox_frame = ttk.Frame(main_frame)
-        listbox_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        listbox_frame.columnconfigure(0, weight=1)
-        listbox_frame.rowconfigure(0, weight=1)
-        
-        scrollbar = ttk.Scrollbar(listbox_frame)
-        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
-        
-        self.listbox = tk.Listbox(
-            listbox_frame, 
-            yscrollcommand=scrollbar.set,
-            selectmode=tk.SINGLE
-        )
-        self.listbox.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        scrollbar.config(command=self.listbox.yview)
-        
-        # Create quit button
-        quit_button = ttk.Button(main_frame, text="Quit", command=self.quit)
-        quit_button.grid(row=2, column=0, pady=(10, 0))
-        
-        # Load titles
-        self.load_titles()
-    
-    def load_titles(self):
-        """Load recorded titles into the listbox."""
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        self.set_margin_top(12)
+        self.set_margin_bottom(12)
+        self.set_margin_start(12)
+        self.set_margin_end(12)
+        self.set_hexpand(True)
+        self.set_vexpand(True)
+
+        self.recording: Optional[dict] = None
+        self.category_combo: Optional[Gtk.ComboBoxText] = None
+        self.description_label: Optional[Gtk.Label] = None
+        self.season_episode_label: Optional[Gtk.Label] = None
+        self.filename_label: Optional[Gtk.Label] = None
+
+        # Create scrolled window for content
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_vexpand(True)
+        scrolled.set_hexpand(True)
+
+        content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        content_box.set_margin_top(8)
+        content_box.set_margin_start(8)
+        content_box.set_margin_end(8)
+
+        # Title
+        self.title_label = Gtk.Label(label="Select a recording")
+        self.title_label.set_wrap(True)
+        self.title_label.set_markup("<b><large>Select a recording</large></b>")
+        content_box.append(self.title_label)
+
+        # Channel and date
+        self.channel_date_label = Gtk.Label()
+        self.channel_date_label.set_halign(Gtk.Align.START)
+        self.channel_date_label.add_css_class("dim-label")
+        content_box.append(self.channel_date_label)
+
+        # Season/Episode
+        self.season_episode_label = Gtk.Label()
+        self.season_episode_label.set_halign(Gtk.Align.START)
+        self.season_episode_label.add_css_class("dim-label")
+        content_box.append(self.season_episode_label)
+
+        # Description
+        self.description_label = Gtk.Label()
+        self.description_label.set_wrap(True)
+        self.description_label.set_halign(Gtk.Align.START)
+        self.description_label.set_vexpand(True)
+        self.description_label.set_valign(Gtk.Align.START)
+        content_box.append(self.description_label)
+
+        # Filename
+        self.filename_label = Gtk.Label()
+        self.filename_label.set_wrap(True)
+        self.filename_label.set_selectable(True)
+        self.filename_label.add_css_class("monospace")
+        self.filename_label.add_css_class("dim-label")
+        content_box.append(self.filename_label)
+
+        scrolled.set_child(content_box)
+        self.append(scrolled)
+
+        # Category selector
+        category_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        category_label = Gtk.Label(label="Kodi Category:")
+        category_label.set_halign(Gtk.Align.END)
+        category_box.append(category_label)
+
+        self.category_combo = Gtk.ComboBoxText()
+        self.category_combo.append("drama", "Drama")
+        self.category_combo.append("comedy", "Comedy")
+        self.category_combo.append("film", "Film")
+        self.category_combo.set_active_id("drama")
+        self.category_combo.set_hexpand(True)
+        category_box.append(self.category_combo)
+
+        self.append(category_box)
+
+    def set_recording(self, recording: dict) -> None:
+        """Update the detail pane with a new recording."""
+        self.recording = recording
+
+        title = recording.get("title", "Unknown")
+        self.title_label.set_markup(f"<b><large>{title}</large></b>")
+
+        channel = recording.get("channelname", "Unknown")
+        date = recording.get("ctimestart", "")
+        self.channel_date_label.set_text(f"{channel} • {date}")
+
+        season = recording.get("season")
+        episode = recording.get("episode")
+        if season and episode:
+            self.season_episode_label.set_text(f"S{season}E{episode}")
+            self.season_episode_label.set_visible(True)
+        else:
+            self.season_episode_label.set_visible(False)
+
+        description = recording.get("disp_description", "")
+        if not description:
+            description = recording.get("description", "No description available")
+        self.description_label.set_text(description)
+
+        filename = recording.get("filename", "")
+        self.filename_label.set_text(filename)
+
+        # Auto-suggest category based on series vs film heuristics
+        if season and episode:
+            self.category_combo.set_active_id("drama")
+        else:
+            self.category_combo.set_active_id("film")
+
+    def get_selected_category(self) -> str:
+        """Get the currently selected category."""
+        return self.category_combo.get_active_id()
+
+
+class RecordingsWindow(Adw.ApplicationWindow):
+    """Main window for browsing and categorizing TVHeadend recordings."""
+
+    def __init__(self, app: Adw.Application, **kwargs):
+        super().__init__(application=app, **kwargs)
+        self.set_title(f"{tvhtokodi.appname} v{tvhtokodi.version}")
+        self.set_default_size(1000, 700)
+
+        self.all_recordings: list[dict] = []
+        self.selected_row: Optional[Gtk.ListBoxRow] = None
+        self.loading_spinner: Optional[Gtk.Spinner] = None
+
+        # Build UI
+        self._build_ui()
+
+        # Load recordings in background
+        threading.Thread(target=self._load_recordings, daemon=True).start()
+
+    def _build_ui(self) -> None:
+        """Build the main UI layout."""
+        # Header bar
+        header_bar = Adw.HeaderBar()
+
+        # Action buttons
+        action_box = Gtk.Box(spacing=8)
+        action_box.set_margin_start(8)
+        action_box.set_margin_end(8)
+
+        self.move_button = Gtk.Button(label="Move to Kodi")
+        self.move_button.add_css_class("suggested-action")
+        self.move_button.set_sensitive(False)
+        self.move_button.connect("clicked", self._on_move_clicked)
+        action_box.append(self.move_button)
+
+        refresh_button = Gtk.Button(label="Refresh")
+        refresh_button.connect("clicked", self._on_refresh_clicked)
+        action_box.append(refresh_button)
+
+        header_bar.pack_end(action_box)
+
+        # Main content - split pane
+        paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        paned.set_hexpand(True)
+        paned.set_vexpand(True)
+
+        # Left: Recordings list
+        left_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+        search_box = Gtk.SearchEntry()
+        search_box.set_placeholder_text("Search recordings…")
+        search_box.set_margin_top(8)
+        search_box.set_margin_start(8)
+        search_box.set_margin_end(8)
+        search_box.connect("search-changed", self._on_search_changed)
+        left_box.append(search_box)
+
+        self.list_box = Gtk.ListBox()
+        self.list_box.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        self.list_box.connect("row-selected", self._on_row_selected)
+        self.list_box.add_css_class("navigation-sidebar")
+
+        scrolled_left = Gtk.ScrolledWindow()
+        scrolled_left.set_child(self.list_box)
+        scrolled_left.set_vexpand(True)
+        left_box.append(scrolled_left)
+
+        paned.set_start_child(left_box)
+        paned.set_start_child(left_box)
+        paned.set_resize_start_child(False)
+
+        # Right: Recording details
+        self.detail_pane = RecordingDetailPane()
+        paned.set_end_child(self.detail_pane)
+
+        # Layout with header and content
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        main_box.append(header_bar)
+        main_box.append(paned)
+
+        self.set_content(main_box)
+
+    def _load_recordings(self) -> None:
+        """Load recordings from TVHeadend in background thread."""
         try:
-            _, titles = recordedTitles()
-            
-            # Sort titles alphabetically
-            sorted_titles = sorted(titles.keys())
-            
-            # Add titles to listbox
-            for title in sorted_titles:
-                self.listbox.insert(tk.END, title)
-                
+            raw_recs, _ = allRecordings()
+            # Filter out radio recordings and tidy them
+            self.all_recordings = [
+                tidyRecording(rec)
+                for rec in raw_recs
+                if not rec.get("filename", "").startswith("/var/lib/tvheadend/radio")
+            ]
+
+            # Sort by record date (newest first)
+            self.all_recordings.sort(key=lambda x: x.get("recorddate", 0), reverse=True)
+
+            # Update UI on main thread
+            GLib.idle_add(self._populate_list)
         except Exception as e:
-            # If there's an error, show it in the listbox
-            self.listbox.insert(tk.END, f"Error loading titles: {e}")
+            error_msg = str(e)
+            errorNotify(sys.exc_info()[2], e)
+            GLib.idle_add(lambda msg=error_msg: self._show_error(msg))
+
+    def _populate_list(self) -> None:
+        """Populate the recordings list."""
+        self.list_box.remove_all()
+        for recording in self.all_recordings:
+            row = Gtk.ListBoxRow()
+            row.set_child(RecordingRow(recording))
+            self.list_box.append(row)
+
+    def _on_row_selected(
+        self, list_box: Gtk.ListBox, row: Optional[Gtk.ListBoxRow]
+    ) -> None:
+        """Handle recording selection."""
+        if row is None:
+            self.move_button.set_sensitive(False)
+            return
+
+        idx = row.get_index()
+        if idx >= 0 and idx < len(self.all_recordings):
+            self.selected_row = row
+            recording = self.all_recordings[idx]
+            self.detail_pane.set_recording(recording)
+            self.move_button.set_sensitive(True)
+
+    def _on_search_changed(self, search_entry: Gtk.SearchEntry) -> None:
+        """Filter recordings by search text."""
+        query = search_entry.get_text().lower()
+
+        for idx, recording in enumerate(self.all_recordings):
+            row = self.list_box.get_row_at_index(idx)
+            if row:
+                matches = (
+                    query in recording.get("title", "").lower()
+                    or query in recording.get("subtitle", "").lower()
+                    or query in recording.get("disp_description", "").lower()
+                )
+                row.set_visible(matches)
+
+    def _on_move_clicked(self, button: Gtk.Button) -> None:
+        """Handle move to Kodi button click."""
+        if self.detail_pane.recording is None:
+            return
+
+        recording = self.detail_pane.recording
+        category = self.detail_pane.get_selected_category()
+
+        # Show confirmation dialog
+        dialog = Adw.MessageDialog()
+        dialog.set_heading("Move to Kodi?")
+        dialog.set_body(
+            f"Title: {recording.get('title', 'Unknown')}\n"
+            f"Category: {category.title()}\n\n"
+            f"After copying, the recording will be deleted from TVHeadend."
+        )
+        dialog.add_response("cancel", "Cancel")
+        dialog.add_response("move", "Move")
+        dialog.set_default_response("move")
+        dialog.set_response_appearance("move", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_transient_for(self)
+        dialog.connect("response", self._on_move_confirmed, recording, category)
+        dialog.present()
+
+    def _on_move_confirmed(
+        self,
+        dialog: Adw.MessageDialog,
+        response: str,
+        recording: dict,
+        category: str,
+    ) -> None:
+        """Execute move after confirmation."""
+        if response != "move":
+            return
+
+        # Start move in background thread
+        threading.Thread(
+            target=self._execute_move, args=(recording, category), daemon=True
+        ).start()
+
+        # Show progress dialog
+        self.move_button.set_sensitive(False)
+
+    def _execute_move(self, recording: dict, category: str) -> None:
+        """Execute the move operation (background thread)."""
+        try:
+            # Enrich recording with destination path and metadata
+            destination = self._compute_destination(recording, category)
+            recording["destination"] = destination
+            recording["category"] = category
+
+            # Generate appropriate NFO file
+            if category == "film":
+                # For films, if no year, use current year as fallback
+                if (
+                    "copyright_year" not in recording
+                    or recording["copyright_year"] < 1900
+                ):
+                    import time
+
+                    recording["year"] = time.localtime().tm_year
+                else:
+                    recording["year"] = recording["copyright_year"]
+                nfo_content = makeFilmNfo(recording)
+            else:
+                nfo_content = makeProgNfo(recording)
+
+            recording["nfo"] = nfo_content
+
+            log.info(
+                f"Moving {recording['title']} to {destination} category={category}"
+            )
+
+            # Get all associated files (srt, nfo, etc)
+            recording["allfiles"] = allShowFiles(recording)
+            log.info(f"Associated files: {recording['allfiles']}")
+
+            # TODO: Wire copy and delete operations here
+            # For now, just show success message
+            GLib.idle_add(
+                lambda: self._show_success(f"Ready to move {recording['title']}")
+            )
+        except Exception as e:
+            error_msg = f"Move failed: {str(e)}"
+            errorNotify(sys.exc_info()[2], e)
+            GLib.idle_add(lambda msg=error_msg: self._show_error(msg))
+
+    def _compute_destination(self, recording: dict, category: str) -> str:
+        """Compute the Kodi destination path based on category."""
+        title = recording.get("title", "Unknown")
+        season = recording.get("season")
+
+        if category == "film":
+            filmdir = tvhtokodi.cfg.get("filmdir", "/media/Films")
+            year = recording.get("copyright_year", 0)
+            if year < 1900:
+                year = ""
+            title_with_year = f"{title} ({year})" if year else title
+            initial = title[0].upper() if title else "?"
+            return f"{filmdir}/{initial}/{title_with_year}/"
+        else:
+            tvdir = tvhtokodi.cfg.get("tvdir", "/media/TV")
+            subcategory = "Comedy" if category == "comedy" else "Drama"
+            base = f"{tvdir}/{subcategory}/{title}/"
+            if season:
+                return f"{base}Series {int(season):02d}/"
+            return base
+
+    def _on_refresh_clicked(self, button: Gtk.Button) -> None:
+        """Refresh the recordings list."""
+        button.set_sensitive(False)
+        threading.Thread(target=self._load_recordings, daemon=True).start()
+        GLib.idle_add(lambda: button.set_sensitive(True))
+
+    def _show_error(self, message: str) -> None:
+        """Show an error dialog."""
+        dialog = Adw.MessageDialog()
+        dialog.set_heading("Error")
+        dialog.set_body(message)
+        dialog.add_response("ok", "OK")
+        dialog.set_transient_for(self)
+        dialog.present()
+
+    def _show_success(self, message: str) -> None:
+        """Show a success notification."""
+        dialog = Adw.MessageDialog()
+        dialog.set_heading("Success")
+        dialog.set_body(message)
+        dialog.add_response("ok", "OK")
+        dialog.set_transient_for(self)
+        dialog.present()
 
 
-def main():
-    """Run the GUI application."""
-    app = TitleBrowser()
-    app.mainloop()
+class TVHToKodiApplication(Adw.Application):
+    """Main application class."""
+
+    def __init__(self):
+        super().__init__(
+            application_id="com.example.tvhtokodi",
+            flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
+        )
+        self.connect("activate", self.on_activate)
+
+    def on_activate(self, app: Adw.Application) -> None:
+        """Handle application activation."""
+        window = RecordingsWindow(app)
+        window.present()
+
+
+def doGui() -> None:
+    """Entry point for the GTK4 GUI (called by pyproject.toml script)."""
+    # Setup logging
+    cformat = "%(asctime)s [%(levelname)-5.5s]  %(message)s"
+    datefmt = "%d/%m/%Y %H:%M:%S"
+    cfmt = logging.Formatter(cformat, datefmt=datefmt)
+    consH = logging.StreamHandler(sys.stderr)
+    consH.setFormatter(cfmt)
+    log.addHandler(consH)
+    log.setLevel(logging.DEBUG)
+
+    # Load config
+    tvhtokodi.readConfig()
+
+    # Run application
+    app = TVHToKodiApplication()
+    exit_status = app.run(sys.argv)
+    sys.exit(exit_status)
+
+
+def main() -> None:
+    """Alias for doGui() for standalone execution."""
+    doGui()
 
 
 if __name__ == "__main__":
