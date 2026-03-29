@@ -1,6 +1,6 @@
 [project]
 name = "tvhtokodi"
-version = "0.3.15"
+version = "0.3.16"
 description = "edit tvh recordings and import them into the kodi db"
 authors = [{ name = "ccdale", email = "chris.charles.allison+tvhtokodi@gmail.com" }]
 requires-python = ">=3.10.0,<4"
