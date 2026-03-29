@@ -1,1 +1,15 @@
-{"tvhuser": "admin", "tvhpass": "tvhpassword", "tvhipaddr": "tvserver:9981", "keyfn": "id_rsa", "sshuser": "admin", "sshhost": "tvserver", "filenumber": 1, "destination": "/home/admin/.tvhincoming", "kodiipaddr": "tvserver", "kodiport": 8080, "kodiuser": "", "kodipass": "", "verifychecksum": true}
+{
+	"tvhuser": "admin",
+	"tvhpass": "tvhpassword",
+	"tvhipaddr": "tvserver:9981",
+	"keyfn": "id_rsa",
+	"sshuser": "admin",
+	"sshhost": "tvserver",
+	"filenumber": 1,
+	"destination": "/home/admin/.tvhincoming",
+	"kodiipaddr": "tvserver",
+	"kodiport": 8080,
+	"kodiuser": "",
+	"kodipass": "",
+	"verifychecksum": true
+}
