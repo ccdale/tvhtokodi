@@ -2,7 +2,7 @@
 Type=Application
 Name=tvhtokodi
 Comment=manage recordings and play them on kodi
-Icon=/home/chris/.local/share/image/tvhtokodi.png
+Icon=/home/chris/src/tvhtokodi/assets/tvhtokodi-icon.svg
 Exec=/home/chris/.local/bin/tvh
 Path=/
 Categories=Network

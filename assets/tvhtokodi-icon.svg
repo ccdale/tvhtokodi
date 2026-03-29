@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">tvhtokodi icon</title>
+  <desc id="desc">Stylized T and K with an arrow pointing from T to K in a green palette.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f3d2e"/>
+      <stop offset="55%" stop-color="#1f7a4f"/>
+      <stop offset="100%" stop-color="#7ecf9d"/>
+    </linearGradient>
+    <linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#d8ffe8"/>
+      <stop offset="100%" stop-color="#f2fff7"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <rect x="24" y="24" width="464" height="464" rx="96" fill="url(#bg)"/>
+
+  <rect x="36" y="36" width="440" height="440" rx="84" fill="none" stroke="#c8f5da" stroke-opacity="0.35" stroke-width="3"/>
+
+  <text x="132" y="322" font-family="DejaVu Sans, Noto Sans, Liberation Sans, sans-serif" font-size="248" font-weight="800" fill="#f4fff8" filter="url(#softShadow)">T</text>
+
+  <g filter="url(#softShadow)">
+    <rect x="206" y="232" width="120" height="48" rx="24" fill="url(#arrowGrad)"/>
+    <path d="M326 208 L392 256 L326 304 Z" fill="url(#arrowGrad)"/>
+  </g>
+
+  <text x="354" y="322" font-family="DejaVu Sans, Noto Sans, Liberation Sans, sans-serif" font-size="248" font-weight="800" fill="#f4fff8" filter="url(#softShadow)">K</text>
+</svg>
